@@ -75,8 +75,14 @@ export default function About() {
     }, []);
 
     const resolveImageUrl = (logoObj) => {
-        const rawUrl = typeof logoObj === 'string' ? logoObj : logoObj?.url;
-        if (!rawUrl) return '';
+        let rawUrl = logoObj;
+
+        // Safely extract URL whether passed as a string, direct object, or nested CMS structure
+        if (typeof logoObj === 'object' && logoObj !== null) {
+            rawUrl = logoObj.url || logoObj.data?.attributes?.url || logoObj.data?.url || '';
+        }
+
+        if (!rawUrl || typeof rawUrl !== 'string') return '';
 
         // If the URL is already an absolute link (like Cloudinary), return it as-is
         if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
