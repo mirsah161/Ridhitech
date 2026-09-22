@@ -28,36 +28,6 @@ const defaultAboutData = {
     phone: '+91989-561-1166',
 };
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const formData = {
-        firstName: e.target.firstName.value,
-        lastName: e.target.lastName.value,
-        email: e.target.email.value,
-        message: e.target.message.value,
-    };
-
-    try {
-        const response = await fetch('https://rithi-backend.onrender.com/api/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ data: formData }),
-        });
-
-        if (response.ok) {
-            alert('Message sent successfully!');
-            e.target.reset(); 
-        } else {
-            alert('Failed to send message. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error submitting form:', error);
-    }
-};
-
 export default function About() {
     const [aboutData, setAboutData] = useState(defaultAboutData);
     const [submitted, setSubmitted] = useState(false);
@@ -115,13 +85,39 @@ export default function About() {
     const addressLine1 = [loc.Building || loc.building, loc.place || loc.Place].filter(Boolean).join(', ');
     const addressLine2 = [loc.pin || loc.Pin, loc.district || loc.District, loc.state || loc.State].filter(Boolean).join(', ');
 
-    const handleSubmit = (e) => {
+    // Fixed handleSubmit integrated with backend API and loading state
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setTimeout(() => {
+
+        const formData = {
+            firstName: e.target.firstName.value,
+            lastName: e.target.lastName.value,
+            email: e.target.email.value,
+            message: e.target.message.value,
+        };
+
+        try {
+            const response = await fetch('https://rithi-backend.onrender.com/api/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: formData }),
+            });
+
+            if (response.ok) {
+                setSubmitted(true);
+                e.target.reset();
+            } else {
+                alert('Failed to send message. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            alert('An error occurred. Please check your connection.');
+        } finally {
             setIsLoading(false);
-            setSubmitted(true);
-        }, 800);
+        }
     };
 
     return (
@@ -143,7 +139,6 @@ export default function About() {
                     transition={{ duration: 0.5 }}
                     className="space-y-6 max-w-3xl border-l-2 border-emerald-500 pl-6 sm:pl-8"
                 >
-
                     <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.15]">
                         {aboutData.title}
                     </h1>
@@ -181,7 +176,6 @@ export default function About() {
                 </div>
 
                 <div className="space-y-16 overflow-hidden">
-
                     {aboutData.clients && aboutData.clients.length > 0 && (
                         <div className="space-y-6">
                             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
@@ -257,11 +251,9 @@ export default function About() {
                             </div>
                         </div>
                     )}
-
                 </div>
 
                 <div id="contact" className="pt-20 border-t border-white/10 scroll-mt-20 space-y-12">
-
                     <div className="text-center max-w-2xl mx-auto space-y-3">
                         <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
                             Get in touch
@@ -315,7 +307,7 @@ export default function About() {
                                     title="Ridhitech India Location Map"
                                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3929.69562737813!2d76.28866479999999!3d9.9592621!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b0873a594821935%3A0xbcb764a920edbc17!2sRIDHITECH%20INDIA%20PRIVATE%20LIMITED!5e0!3m2!1sen!2sin!4v1789975771710!5m2!1sen!2sin" width="100%" height="100%"
                                     style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg)', minHeight: '390px' }}
-                                    allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                    allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
 
@@ -352,6 +344,7 @@ export default function About() {
                                                     </label>
                                                     <input
                                                         type="text"
+                                                        name="firstName"
                                                         required
                                                         placeholder="Your name"
                                                         className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors"
@@ -363,6 +356,7 @@ export default function About() {
                                                     </label>
                                                     <input
                                                         type="text"
+                                                        name="lastName"
                                                         required
                                                         placeholder="Your last name"
                                                         className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors"
@@ -376,6 +370,7 @@ export default function About() {
                                                 </label>
                                                 <input
                                                     type="email"
+                                                    name="email"
                                                     required
                                                     placeholder="Your email address"
                                                     className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors"
@@ -387,6 +382,7 @@ export default function About() {
                                                     Message
                                                 </label>
                                                 <textarea
+                                                    name="message"
                                                     required
                                                     rows={4}
                                                     placeholder="Write something...."
