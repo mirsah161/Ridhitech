@@ -77,8 +77,15 @@ export default function About() {
     const resolveImageUrl = (logoObj) => {
         const rawUrl = typeof logoObj === 'string' ? logoObj : logoObj?.url;
         if (!rawUrl) return '';
+
+        // If the URL is already an absolute link (like Cloudinary), return it as-is
+        if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+            return rawUrl;
+        }
+
+        // Otherwise, prepend your backend base URL for relative paths
         const baseClean = API_BASE_URL ? API_BASE_URL.replace(/\/api$/, '') : '';
-        return rawUrl.startsWith('http') ? rawUrl : `${baseClean}${rawUrl}`;
+        return `${baseClean}${rawUrl}`;
     };
 
     const loc = aboutData.location || {};
