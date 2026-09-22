@@ -28,6 +28,36 @@ const defaultAboutData = {
     phone: '+91989-561-1166',
 };
 
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const formData = {
+        firstName: e.target.firstName.value,
+        lastName: e.target.lastName.value,
+        email: e.target.email.value,
+        message: e.target.message.value,
+    };
+
+    try {
+        const response = await fetch('https://rithi-backend.onrender.com/api/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ data: formData }),
+        });
+
+        if (response.ok) {
+            alert('Message sent successfully!');
+            e.target.reset(); 
+        } else {
+            alert('Failed to send message. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error submitting form:', error);
+    }
+};
+
 export default function About() {
     const [aboutData, setAboutData] = useState(defaultAboutData);
     const [submitted, setSubmitted] = useState(false);
