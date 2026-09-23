@@ -77,7 +77,11 @@ export default function Footer({ data, loading = false }) {
                         {trustBadge?.url && (
                             <div className="pt-2">
                                 <img
-                                    src={`${API_BASE_URL}${trustBadge.url}`}
+                                    src={
+                                        trustBadge.url.startsWith('http')
+                                            ? trustBadge.url
+                                            : `${API_BASE_URL}${trustBadge.url.startsWith('/') ? '' : '/'}${trustBadge.url}`
+                                    }
                                     alt={trustBadge.name || "Trust badge"}
                                     className="h-20 w-auto object-contain"
                                 />
