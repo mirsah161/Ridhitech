@@ -35,27 +35,17 @@ function HomeSkeleton() {
 
 export default function Home() {
     const { data, isLoading } = useQuery({
-        queryKey: ['homePageData'],
+        queryKey: ['homePageBundle'],
         queryFn: async () => {
-            const [homePageRes, aboutRes, servicesRes, workRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/home-page?populate=*`),
-                fetch(`${API_BASE_URL}/api/about-sections?populate=*`),
-                fetch(`${API_BASE_URL}/api/services?populate=*`),
-                fetch(`${API_BASE_URL}/api/work-sections?populate=*`)
-            ]);
+            // Replaced 4 separate requests with a single consolidated bundle endpoint call
+            const res = await fetch(`${API_BASE_URL}/api/homepage-bundle`);
+            const json = res.ok ? await res.json() : null;
 
-            const [homePageJson, aboutJson, servicesJson, workJson] = await Promise.all([
-                homePageRes.ok ? homePageRes.json() : null,
-                aboutRes.ok ? aboutRes.json() : null,
-                servicesRes.ok ? servicesRes.json() : { data: [] },
-                workRes.ok ? workRes.json() : { data: [] },
-            ]);
-
-            return {
-                homePage: homePageJson?.data || null,
-                about: aboutJson?.data || null,
-                services: servicesJson?.data || [],
-                work: workJson?.data || [],
+            return json?.data || {
+                homePage: null,
+                aboutSections: null,
+                services: [],
+                workSections: [],
             };
         },
         staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
@@ -66,9 +56,9 @@ export default function Home() {
     }
 
     const homePage = data?.homePage || null;
-    const about = data?.about || null;
+    const about = data?.aboutSections || null;
     const services = data?.services || [];
-    const work = data?.work || [];
+    const work = data?.workSections || [];
 
     const seoData = homePage?.attributes?.seo || homePage?.seo;
 
