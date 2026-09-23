@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import SEO from '../components/SEO';
 import Hero from '../components/Hero';
 import About from '../components/WCU';
@@ -32,53 +33,44 @@ function HomeSkeleton() {
     );
 }
 
-function Home() {
-    const [homeData, setHomeData] = useState({
-        homePage: null,
-        about: null,
-        services: [],
-        work: [],
-        loading: true,
+export default function Home() {
+    const { data, isLoading } = useQuery({
+        queryKey: ['homePageData'],
+        queryFn: async () => {
+            const [homePageRes, aboutRes, servicesRes, workRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/home-page?populate=*`),
+                fetch(`${API_BASE_URL}/api/about-sections?populate=*`),
+                fetch(`${API_BASE_URL}/api/services?populate=*`),
+                fetch(`${API_BASE_URL}/api/work-sections?populate=*`)
+            ]);
+
+            const [homePageJson, aboutJson, servicesJson, workJson] = await Promise.all([
+                homePageRes.ok ? homePageRes.json() : null,
+                aboutRes.ok ? aboutRes.json() : null,
+                servicesRes.ok ? servicesRes.json() : { data: [] },
+                workRes.ok ? workRes.json() : { data: [] },
+            ]);
+
+            return {
+                homePage: homePageJson?.data || null,
+                about: aboutJson?.data || null,
+                services: servicesJson?.data || [],
+                work: workJson?.data || [],
+            };
+        },
+        staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
     });
 
-    useEffect(() => {
-        async function fetchAllHomeData() {
-            try {
-                const [homePageRes, aboutRes, servicesRes, workRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/home-page?populate=*`),
-                    fetch(`${API_BASE_URL}/api/about-sections?populate=*`),
-                    fetch(`${API_BASE_URL}/api/services?populate=*`),
-                    fetch(`${API_BASE_URL}/api/work-sections?populate=*`)
-                ]);
-
-                const [homePage, about, services, work] = await Promise.all([
-                    homePageRes.ok ? homePageRes.json() : null,
-                    aboutRes.ok ? aboutRes.json() : null,
-                    servicesRes.ok ? servicesRes.json() : { data: [] },
-                    workRes.ok ? workRes.json() : { data: [] },
-                ]);
-
-                setHomeData({
-                    homePage: homePage?.data || null,
-                    about: about?.data || null,
-                    services: services?.data || [],
-                    work: work?.data || [],
-                    loading: false,
-                });
-            } catch (err) {
-                console.error("Failed to fetch homepage data from Strapi:", err);
-                setHomeData(prev => ({ ...prev, loading: false }));
-            }
-        }
-
-        fetchAllHomeData();
-    }, []);
-
-    if (homeData.loading) {
+    if (isLoading) {
         return <HomeSkeleton />;
     }
 
-    const seoData = homeData.homePage?.attributes?.seo || homeData.homePage?.seo;
+    const homePage = data?.homePage || null;
+    const about = data?.about || null;
+    const services = data?.services || [];
+    const work = data?.work || [];
+
+    const seoData = homePage?.attributes?.seo || homePage?.seo;
 
     return (
         <div className="min-h-screen bg-black text-white selection:bg-emerald-500 selection:text-black font-sans antialiased">
@@ -88,13 +80,11 @@ function Home() {
                 path="/"
             />
             <main>
-                <Hero servicesData={homeData.services} />
-                <About data={homeData.about} />
-                <Services data={homeData.services} />
-                <Work data={homeData.work} />
+                <Hero servicesData={services} />
+                <About data={about} />
+                <Services data={services} />
+                <Work data={work} />
             </main>
         </div>
     );
 }
-
-export default Home;
