@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import SEO from '../components/SEO';
 import Hero from '../components/Hero';
 import About from '../components/WCU';
@@ -33,48 +33,34 @@ function HomeSkeleton() {
 }
 
 function Home() {
-    const [homeData, setHomeData] = useState({
-        homePage: null,
-        about: null,
-        services: [],
-        work: [],
-        loading: true,
+    const { data: homeData, isLoading } = useQuery({
+        queryKey: ['homeData'],
+        queryFn: async () => {
+            const [homePageRes, aboutRes, servicesRes, workRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/home-page?populate=*`),
+                fetch(`${API_BASE_URL}/api/about-sections?populate=*`),
+                fetch(`${API_BASE_URL}/api/services?populate=*`),
+                fetch(`${API_BASE_URL}/api/work-sections?populate=*`)
+            ]);
+
+            const [homePage, about, services, work] = await Promise.all([
+                homePageRes.ok ? homePageRes.json() : null,
+                aboutRes.ok ? aboutRes.json() : null,
+                servicesRes.ok ? servicesRes.json() : { data: [] },
+                workRes.ok ? workRes.json() : { data: [] },
+            ]);
+
+            return {
+                homePage: homePage?.data || null,
+                about: about?.data || null,
+                services: services?.data || [],
+                work: work?.data || [],
+            };
+        },
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     });
 
-    useEffect(() => {
-        async function fetchAllHomeData() {
-            try {
-                const [homePageRes, aboutRes, servicesRes, workRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/home-page?populate=*`),
-                    fetch(`${API_BASE_URL}/api/about-sections?populate=*`),
-                    fetch(`${API_BASE_URL}/api/services?populate=*`),
-                    fetch(`${API_BASE_URL}/api/work-sections?populate=*`)
-                ]);
-
-                const [homePage, about, services, work] = await Promise.all([
-                    homePageRes.ok ? homePageRes.json() : null,
-                    aboutRes.ok ? aboutRes.json() : null,
-                    servicesRes.ok ? servicesRes.json() : { data: [] },
-                    workRes.ok ? workRes.json() : { data: [] },
-                ]);
-
-                setHomeData({
-                    homePage: homePage?.data || null,
-                    about: about?.data || null,
-                    services: services?.data || [],
-                    work: work?.data || [],
-                    loading: false,
-                });
-            } catch (err) {
-                console.error("Failed to fetch homepage data from Strapi:", err);
-                setHomeData(prev => ({ ...prev, loading: false }));
-            }
-        }
-
-        fetchAllHomeData();
-    }, []);
-
-    if (homeData.loading) {
+    if (isLoading || !homeData) {
         return <HomeSkeleton />;
     }
 

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Cpu, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
@@ -29,50 +30,44 @@ const defaultAboutData = {
 };
 
 export default function About() {
-    const [aboutData, setAboutData] = useState(defaultAboutData);
     const [submitted, setSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        const controller = new AbortController();
+    // Fetch data using TanStack Query
+    const { data: aboutData = defaultAboutData } = useQuery({
+        queryKey: ['about-page-data'],
+        queryFn: async () => {
+            const [aboutRes, contactRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/about-page?populate=*`).then(res => res.ok ? res.json() : null),
+                fetch(`${API_BASE_URL}/api/contact-section`).then(res => res.ok ? res.json() : null)
+            ]);
 
-        Promise.all([
-            fetch(`${API_BASE_URL}/api/about-page?populate=*`, { signal: controller.signal }).then(res => res.ok ? res.json() : null),
-            fetch(`${API_BASE_URL}/api/contact-section`, { signal: controller.signal }).then(res => res.ok ? res.json() : null)
-        ])
-            .then(([aboutRes, contactRes]) => {
-                const attr = aboutRes?.data;
-                const contactAttr = contactRes?.data;
+            const attr = aboutRes?.data;
+            const contactAttr = contactRes?.data;
 
-                const formatLogoList = (logoArray, fallback) => {
-                    if (!Array.isArray(logoArray) || logoArray.length === 0) return fallback;
-                    return logoArray.map((item) => ({
-                        name: item.name || 'Logo',
-                        logo: { url: item.url }
-                    }));
-                };
-
-                setAboutData(prev => ({
-                    ...prev,
-                    title: attr?.Title || prev.title,
-                    description: attr?.Description || prev.description,
-                    vision: attr?.Vision || prev.vision,
-                    mission: attr?.Mission || prev.mission,
-                    clients: formatLogoList(attr?.Client_Logo, prev.clients),
-                    techPartners: formatLogoList(attr?.Partners_Logo, prev.techPartners),
-                    location: contactAttr?.Location || contactAttr?.location || attr?.Location || attr?.location || prev.location,
-                    email: contactAttr?.Email || contactAttr?.email || attr?.Email || attr?.email || prev.email,
-                    phone: contactAttr?.Phone || contactAttr?.phone || attr?.Phone || attr?.phone || prev.phone,
+            const formatLogoList = (logoArray, fallback) => {
+                if (!Array.isArray(logoArray) || logoArray.length === 0) return fallback;
+                return logoArray.map((item) => ({
+                    name: item.name || 'Logo',
+                    logo: { url: item.url }
                 }));
-            })
-            .catch(err => {
-                if (err.name !== 'AbortError') {
-                    console.error('Error fetching about/contact data, using defaults:', err);
-                }
-            });
+            };
 
-        return () => controller.abort();
-    }, []);
+            return {
+                ...defaultAboutData,
+                title: attr?.Title || defaultAboutData.title,
+                description: attr?.Description || defaultAboutData.description,
+                vision: attr?.Vision || defaultAboutData.vision,
+                mission: attr?.Mission || defaultAboutData.mission,
+                clients: formatLogoList(attr?.Client_Logo, defaultAboutData.clients),
+                techPartners: formatLogoList(attr?.Partners_Logo, defaultAboutData.techPartners),
+                location: contactAttr?.Location || contactAttr?.location || attr?.Location || attr?.location || defaultAboutData.location,
+                email: contactAttr?.Email || contactAttr?.email || attr?.Email || attr?.email || defaultAboutData.email,
+                phone: contactAttr?.Phone || contactAttr?.phone || attr?.Phone || attr?.phone || defaultAboutData.phone,
+            };
+        },
+        staleTime: 1000 * 60 * 5, // Optional: Cache data for 5 minutes
+    });
 
     const resolveImageUrl = (logoObj) => {
         let rawUrl = logoObj;

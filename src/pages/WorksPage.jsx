@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config/api';
 import { motion } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
@@ -44,42 +44,36 @@ const defaultProjects = [
 ];
 
 export default function WorksPage() {
-    const [projects, setProjects] = useState(defaultProjects);
-    const [loading, setLoading] = useState(true);
+    // Fetch projects using TanStack Query
+    const { data: projects = defaultProjects, isLoading: loading } = useQuery({
+        queryKey: ['work-sections-archive'],
+        queryFn: async () => {
+            const res = await fetch(`${API_BASE_URL}/api/work-sections?populate=*`);
+            if (!res.ok) {
+                throw new Error('Failed to fetch projects');
+            }
+            const response = await res.json();
+            const fetchedProjects = response?.data;
 
-    useEffect(() => {
-        const controller = new AbortController();
+            if (Array.isArray(fetchedProjects) && fetchedProjects.length > 0) {
+                return fetchedProjects.map(item => {
+                    const attr = item.attributes || item;
+                    return {
+                        id: item.id,
+                        Category: attr.Category || attr.category || '',
+                        Title: attr.Title || attr.title || '',
+                        description: attr.Description || attr.description || '',
+                        tags: attr.tags || attr.Tags || [],
+                        Thumbnail: attr.Thumbnail?.data?.attributes || attr.Thumbnail || null,
+                        LiveUrl: attr.LiveUrl || attr.liveUrl || '#',
+                    };
+                });
+            }
 
-        fetch(`${API_BASE_URL}/api/work-sections?populate=*`, { signal: controller.signal })
-            .then(res => (res.ok ? res.json() : Promise.reject(new Error('Failed to fetch projects'))))
-            .then(response => {
-                const fetchedProjects = response?.data;
-                if (Array.isArray(fetchedProjects) && fetchedProjects.length > 0) {
-                    const formatted = fetchedProjects.map(item => {
-                        const attr = item.attributes || item;
-                        return {
-                            id: item.id,
-                            Category: attr.Category || attr.category || '',
-                            Title: attr.Title || attr.title || '',
-                            description: attr.Description || attr.description || '',
-                            tags: attr.tags || attr.Tags || [],
-                            Thumbnail: attr.Thumbnail?.data?.attributes || attr.Thumbnail || null,
-                            LiveUrl: attr.LiveUrl || attr.liveUrl || '#',
-                        };
-                    });
-                    setProjects(formatted);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                if (err.name !== 'AbortError') {
-                    console.error('Error fetching projects, using defaults:', err);
-                    setLoading(false);
-                }
-            });
-
-        return () => controller.abort();
-    }, []);
+            return defaultProjects;
+        },
+        staleTime: 1000 * 60 * 5, // Cache project list for 5 minutes
+    });
 
     return (
         <div className="min-h-screen bg-black text-white pt-24 pb-16 px-6 sm:px-8 max-w-6xl mx-auto selection:bg-emerald-500 selection:text-black font-sans">
@@ -113,7 +107,7 @@ export default function WorksPage() {
                 <div className="grid grid-cols-1 gap-4">
                     {projects.map((project, index) => {
                         const rawImageUrl = project.Thumbnail?.url;
-                        const baseClean = API_BASE_URL ? API_BASE_URL.replace('/api', '') : '';
+                        const baseClean = API_BASE_URL ? API_BASE_URL.replace(/\/api$/, '') : '';
                         const imageUrl = rawImageUrl?.startsWith('http')
                             ? rawImageUrl
                             : rawImageUrl

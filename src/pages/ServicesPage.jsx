@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config/api';
 import { motion } from 'framer-motion';
 import { ArrowRight, ChevronDown, Layers } from 'lucide-react';
 import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 function ServiceCard({ service, index }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -77,62 +78,54 @@ function ServiceCard({ service, index }) {
 }
 
 export default function ServicesPage() {
-    const [services, setServices] = useState([]);
-    const [pageContent, setPageContent] = useState({});
-    const [loading, setLoading] = useState(true);
+    const { data, isLoading } = useQuery({
+        queryKey: ['servicesPageData'],
+        queryFn: async () => {
+            const [servicesRes, pageRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/services?populate=*`),
+                fetch(`${API_BASE_URL}/api/service-page?populate=seo`)
+            ]);
 
-    useEffect(() => {
-        const controller = new AbortController();
+            const servicesJson = servicesRes.ok ? await servicesRes.json() : { data: [] };
+            const pageJson = pageRes.ok ? await pageRes.json() : null;
 
-        Promise.all([
-            fetch(`${API_BASE_URL}/api/services?populate=*`, { signal: controller.signal })
-                .then(res => (res.ok ? res.json() : Promise.reject(new Error('Failed to fetch services')))),
-            fetch(`${API_BASE_URL}/api/service-page?populate=seo`, { signal: controller.signal })
-                .then(res => (res.ok ? res.json() : Promise.reject(new Error('Failed to fetch page metadata'))))
-        ])
-            .then(([servicesRes, pageRes]) => {
-                const fetchedServices = servicesRes?.data;
-                if (Array.isArray(fetchedServices)) {
-                    const formatted = fetchedServices.map(item => {
-                        const attr = item.attributes || item;
+            const fetchedServices = servicesJson?.data;
+            const formattedServices = Array.isArray(fetchedServices)
+                ? fetchedServices.map(item => {
+                    const attr = item.attributes || item;
+                    const iconData = attr.Icon || attr.icon;
+                    const rawUrl =
+                        typeof iconData === 'string' ? iconData :
+                            iconData?.url ||
+                            iconData?.data?.url ||
+                            iconData?.data?.attributes?.url;
 
-                        const iconData = attr.Icon || attr.icon;
-                        const rawUrl =
-                            typeof iconData === 'string' ? iconData :
-                                iconData?.url ||
-                                iconData?.data?.url ||
-                                iconData?.data?.attributes?.url;
+                    const iconUrl = rawUrl
+                        ? (rawUrl.startsWith('http') ? rawUrl : `${API_BASE_URL.replace('/api', '')}${rawUrl}`)
+                        : null;
 
-                        const iconUrl = rawUrl
-                            ? (rawUrl.startsWith('http') ? rawUrl : `${API_BASE_URL.replace('/api', '')}${rawUrl}`)
-                            : null;
+                    return {
+                        id: item.id,
+                        title: attr.Title || attr.title || '',
+                        description: attr.Description || attr.description || '',
+                        iconUrl: iconUrl,
+                    };
+                })
+                : [];
 
-                        return {
-                            id: item.id,
-                            title: attr.Title || attr.title || '',
-                            description: attr.Description || attr.description || '',
-                            iconUrl: iconUrl,
-                        };
-                    });
-                    setServices(formatted);
-                }
+            const fetchedPageData = pageJson?.data;
+            const pageContent = fetchedPageData ? (fetchedPageData.attributes || fetchedPageData) : {};
 
-                const fetchedPageData = pageRes?.data;
-                if (fetchedPageData) {
-                    setPageContent(fetchedPageData.attributes || fetchedPageData);
-                }
+            return {
+                services: formattedServices,
+                pageContent,
+            };
+        },
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    });
 
-                setLoading(false);
-            })
-            .catch(err => {
-                if (err.name !== 'AbortError') {
-                    console.error('Error fetching from Strapi:', err);
-                    setLoading(false);
-                }
-            });
-
-        return () => controller.abort();
-    }, []);
+    const services = data?.services || [];
+    const pageContent = data?.pageContent || {};
 
     return (
         <div className="min-h-screen bg-black text-white pt-28 pb-16 px-6 sm:px-8 max-w-6xl mx-auto relative overflow-hidden selection:bg-emerald-500 selection:text-black font-sans">
@@ -162,7 +155,7 @@ export default function ServicesPage() {
                 </p>
             </div>
 
-            {loading ? (
+            {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
                     {[1, 2, 3].map((n) => (
                         <div key={n} className="h-64 rounded-2xl border border-white/10 bg-zinc-900/40 backdrop-blur-sm animate-pulse" />
