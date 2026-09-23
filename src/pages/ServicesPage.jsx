@@ -128,7 +128,8 @@ export default function ServicesPage() {
     const pageContent = data?.pageContent || {};
 
     return (
-        <div className="min-h-screen bg-black text-white pt-28 pb-16 px-6 sm:px-8 max-w-6xl mx-auto relative overflow-hidden selection:bg-emerald-500 selection:text-black font-sans">
+        /* Expanded max-w container from max-w-6xl to max-w-7xl to comfortably fit 4 columns */
+        <div className="min-h-screen bg-black text-white pt-28 pb-16 px-6 sm:px-8 max-w-7xl mx-auto relative overflow-hidden selection:bg-emerald-500 selection:text-black font-sans">
             <SEO
                 title={pageContent.seo?.metaTitle || pageContent.Title || "Services"}
                 description={pageContent.seo?.metaDescription || pageContent.Description || "Explore engineered technical services and solutions."}
@@ -139,11 +140,7 @@ export default function ServicesPage() {
             <div className="absolute top-2/3 right-1/4 -z-10 h-80 w-80 rounded-full bg-teal-500/5 blur-[100px] pointer-events-none" />
 
             <div className="mb-16 border-b border-white/10 pb-8">
-                <div className="inline-flex items-center space-x-2.5 rounded-full px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 mb-3">
-                    <span className="text-[11px] font-mono font-medium tracking-[0.15em] text-emerald-400 uppercase">
-                        {pageContent.Subtitle || 'CAPABILITIES & OFFERINGS'}
-                    </span>
-                </div>
+                
                 <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4 font-sans">
                     {pageContent.Heading || 'Engineered solutions for '}
                     <span className="text-emerald-400">
@@ -156,13 +153,15 @@ export default function ServicesPage() {
             </div>
 
             {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
-                    {[1, 2, 3].map((n) => (
+                /* Updated loading skeleton grid to show 4 columns on large screens */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
+                    {[1, 2, 3, 4].map((n) => (
                         <div key={n} className="h-64 rounded-2xl border border-white/10 bg-zinc-900/40 backdrop-blur-sm animate-pulse" />
                     ))}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
+                /* Updated main services grid to show 4 columns on large screens */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
                     {services.map((service, index) => (
                         <ServiceCard key={service.id || index} service={service} index={index} />
                     ))}

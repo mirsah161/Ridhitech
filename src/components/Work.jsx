@@ -251,7 +251,7 @@ export default function Work({ data }) {
                                 <div className="absolute bottom-4 inset-x-4 flex items-end justify-between">
                                     <div>
                                         <div className="text-[10px] font-mono text-gray-300 tracking-widest uppercase mb-1">
-                                            0{index + 1} // {project.Category}
+                                            0{index + 1}
                                         </div>
                                         <h3 className="text-base sm:text-xl font-bold text-white tracking-tight uppercase font-sans">
                                             {project.Title}

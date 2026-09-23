@@ -264,9 +264,9 @@ export default function Services({ data }) {
                                             />
                                         </div>
                                     ) : (
-                                        <div className="inline-flex items-center space-x-2.5 rounded-full px-3 py-1 bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="inline-flex items-center space-x-2.5">
                                             <span className="text-[11px] font-mono font-medium tracking-[0.15em] text-emerald-400 uppercase">
-                                                SERVICE // {step}
+                                            {step}
                                             </span>
                                         </div>
                                     )}
