@@ -13,7 +13,7 @@ export default function Hero({ servicesData = [] }) {
     const [loadProgress, setLoadProgress] = useState(0);
 
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const frameStep = isMobile ? 2 : 1; // load every other frame on mobile to cut the download in half
+    const frameStep = isMobile ? 2 : 1;
 
     const fallbackServices = [
         {
@@ -51,6 +51,7 @@ export default function Hero({ servicesData = [] }) {
 
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
 
+    // Asynchronous frame preloading in the background (Non-blocking for LCP)
     useEffect(() => {
         let cancelled = false;
         const images = new Array(TOTAL_FRAMES);
@@ -152,8 +153,6 @@ export default function Hero({ servicesData = [] }) {
     }, [isMobile, frameStep]);
 
     useEffect(() => {
-        if (!isLoaded) return undefined;
-
         let raf = 0;
         const unsubscribe = frameIndex.on('change', (latest) => {
             cancelAnimationFrame(raf);
@@ -169,19 +168,21 @@ export default function Hero({ servicesData = [] }) {
             unsubscribe();
             window.removeEventListener('resize', handleResize);
         };
-    }, [isLoaded, frameIndex, render]);
+    }, [frameIndex, render]);
 
+    // Replaced layout-thrashing string display transforms with opacity and pointer-events
     const opacityAct1 = useTransform(scrollYProgress, [0, 0.15, 0.20], [1, 1, 0]);
     const yAct1 = useTransform(scrollYProgress, [0, 0.15, 0.20], [0, 0, -20]);
-    const displayAct1 = useTransform(scrollYProgress, (v) => (v > 0.21 ? 'none' : 'block'));
+    const pointerAct1 = useTransform(scrollYProgress, (v) => (v > 0.21 ? 'none' : 'auto'));
 
     const opacityAct2 = useTransform(scrollYProgress, [0.24, 0.30, 0.50, 0.56], [0, 1, 1, 0]);
     const yAct2 = useTransform(scrollYProgress, [0.24, 0.30, 0.50, 0.56], [20, 0, 0, -20]);
-    const displayAct2 = useTransform(scrollYProgress, (v) => (v < 0.22 || v > 0.58 ? 'none' : 'block'));
+    const pointerAct2 = useTransform(scrollYProgress, (v) => (v < 0.22 || v > 0.58 ? 'none' : 'auto'));
 
     const opacityAct3 = useTransform(scrollYProgress, [0.60, 0.66, 1], [0, 1, 1]);
     const yAct3 = useTransform(scrollYProgress, [0.60, 0.66, 1], [20, 0, 0]);
-    const displayAct3 = useTransform(scrollYProgress, (v) => (v < 0.58 ? 'none' : 'block'));
+    const pointerAct3 = useTransform(scrollYProgress, (v) => (v < 0.58 ? 'none' : 'auto'));
+
     const progressPercent = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
 
     const titleWords = (activeServices[0]?.title || '').trim().split(/\s+/);
@@ -193,13 +194,10 @@ export default function Hero({ servicesData = [] }) {
             <div className="sticky top-0 h-screen w-full overflow-hidden">
                 <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
 
+                {/* Background loader indicator (Non-blocking for LCP text paint) */}
                 {!isLoaded && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black text-white font-mono" role="status" aria-live="polite">
-                        <div className="text-sm tracking-widest text-emerald-400 mb-2">INITIALIZING EXPERIENCE</div>
-                        <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={loadProgress} aria-label="Loading hero animation">
-                            <div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${loadProgress}%` }} />
-                        </div>
-                        <div className="text-xs text-gray-500 mt-2">{loadProgress}%</div>
+                    <div className="absolute top-6 right-6 z-30 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs font-mono text-emerald-400">
+                        <span>LOADING ASSETS ({loadProgress}%)</span>
                     </div>
                 )}
 
@@ -207,7 +205,7 @@ export default function Hero({ servicesData = [] }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/50 pointer-events-none" aria-hidden="true" />
 
                 <div className="relative z-20 flex h-[calc(100vh-88px)] items-center px-4 sm:px-8 max-w-7xl mx-auto w-full">
-                    <motion.div style={{ opacity: opacityAct1, y: yAct1, display: displayAct1 }} className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6">
+                    <motion.div style={{ opacity: opacityAct1, y: yAct1, pointerEvents: pointerAct1 }} className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6">
                         <h1 id="hero-title" className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-none font-sans">
                             {firstPart} <br />
                             <span className="bg-gradient-to-r from-white via-gray-200 to-emerald-400 bg-clip-text text-transparent">{lastTwo}</span>
@@ -215,12 +213,12 @@ export default function Hero({ servicesData = [] }) {
                         <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg font-sans">{activeServices[0].description}</p>
                     </motion.div>
 
-                    <motion.div style={{ opacity: opacityAct2, y: yAct2, display: displayAct2 }} className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6">
+                    <motion.div style={{ opacity: opacityAct2, y: yAct2, pointerEvents: pointerAct2 }} className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6">
                         <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white leading-tight font-sans">{activeServices[1].title}</h2>
                         <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg font-sans">{activeServices[1].description}</p>
                     </motion.div>
 
-                    <motion.div style={{ opacity: opacityAct3, y: yAct3, display: displayAct3 }} className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6">
+                    <motion.div style={{ opacity: opacityAct3, y: yAct3, pointerEvents: pointerAct3 }} className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6">
                         <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight font-sans">{activeServices[2].title}</h2>
                         <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg font-sans">{activeServices[2].description}</p>
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2">
