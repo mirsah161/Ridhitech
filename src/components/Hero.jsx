@@ -4,15 +4,28 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 const TOTAL_FRAMES = 182;
 const framePath = (index) => `/frames/frame-${String(index).padStart(4, '0')}.webp`;
 
+// The source video is 10s, but only the first 8s is the intended scroll-scrub range.
+const VIDEO_SCRUB_DURATION = 8;
+
 export default function Hero({ servicesData = [] }) {
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const contextRef = useRef(null);
     const imagesRef = useRef([]);
+    const videoRef = useRef(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [loadProgress, setLoadProgress] = useState(0);
 
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const [isMobile, setIsMobile] = useState(
+        () => typeof window !== 'undefined' && window.innerWidth < 768
+    );
+
+    useEffect(() => {
+        const handleBreakpointResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleBreakpointResize, { passive: true });
+        return () => window.removeEventListener('resize', handleBreakpointResize);
+    }, []);
+
     const frameStep = isMobile ? 2 : 1;
 
     const fallbackServices = [
@@ -51,8 +64,29 @@ export default function Hero({ servicesData = [] }) {
 
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
 
-    // Asynchronous frame preloading in the background (Non-blocking for LCP)
+    // Map scroll progress to the first 8s of the 10s source video for synchronized mobile playback
+    const videoTimeTransform = useTransform(scrollYProgress, [0, 1], [0, VIDEO_SCRUB_DURATION]);
+
     useEffect(() => {
+        if (isMobile && videoRef.current) {
+            const unsubscribe = videoTimeTransform.on('change', (latest) => {
+                if (videoRef.current && !isNaN(videoRef.current.duration)) {
+                    // Clamp in case the actual file is ever shorter than VIDEO_SCRUB_DURATION
+                    const clamped = Math.min(latest, videoRef.current.duration);
+                    videoRef.current.currentTime = clamped;
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [isMobile, videoTimeTransform]);
+
+    // Asynchronous frame preloading for desktop only
+    useEffect(() => {
+        if (isMobile) {
+            setIsLoaded(true);
+            return;
+        }
+
         let cancelled = false;
         const images = new Array(TOTAL_FRAMES);
         imagesRef.current = images;
@@ -85,7 +119,7 @@ export default function Hero({ servicesData = [] }) {
             setIsLoaded(true);
 
             const run = async () => {
-                const batchSize = isMobile ? 4 : 8;
+                const batchSize = 8;
                 for (let i = 1; i < targetFrames.length && !cancelled; i += batchSize) {
                     const batch = targetFrames.slice(i, i + batchSize);
                     await Promise.all(batch.map((frameNum) => loadFrame(frameNum)));
@@ -105,6 +139,7 @@ export default function Hero({ servicesData = [] }) {
     }, [isMobile, frameStep]);
 
     const render = useCallback((index) => {
+        if (isMobile) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -132,7 +167,7 @@ export default function Hero({ servicesData = [] }) {
 
         const width = window.innerWidth;
         const height = window.innerHeight;
-        const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         const targetWidth = Math.round(width * dpr);
         const targetHeight = Math.round(height * dpr);
 
@@ -153,6 +188,7 @@ export default function Hero({ servicesData = [] }) {
     }, [isMobile, frameStep]);
 
     useEffect(() => {
+        if (isMobile) return;
         let raf = 0;
         const unsubscribe = frameIndex.on('change', (latest) => {
             cancelAnimationFrame(raf);
@@ -168,7 +204,7 @@ export default function Hero({ servicesData = [] }) {
             unsubscribe();
             window.removeEventListener('resize', handleResize);
         };
-    }, [frameIndex, render]);
+    }, [frameIndex, render, isMobile]);
 
     // Opacity, Y-offsets, Pointer-events, and Visibility transforms
     const opacityAct1 = useTransform(scrollYProgress, [0, 0.15, 0.20], [1, 1, 0]);
@@ -195,10 +231,21 @@ export default function Hero({ servicesData = [] }) {
     return (
         <section id="hero" ref={containerRef} aria-labelledby="hero-title" className="relative h-[800vh] bg-black selection:bg-emerald-500 selection:text-black">
             <div className="sticky top-0 h-screen w-full overflow-hidden">
-                <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+                {isMobile ? (
+                    <video
+                        ref={videoRef}
+                        src="/videos/hero.mp4"
+                        muted
+                        playsInline
+                        preload="auto"
+                        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                    />
+                ) : (
+                    <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+                )}
 
-                {/* Background loader indicator */}
-                {!isLoaded && (
+                {/* Background loader indicator (Desktop only) */}
+                {!isLoaded && !isMobile && (
                     <div className="absolute top-6 right-6 z-30 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs font-mono text-emerald-400">
                         <span>LOADING ASSETS ({loadProgress}%)</span>
                     </div>
@@ -208,7 +255,6 @@ export default function Hero({ servicesData = [] }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/50 pointer-events-none" aria-hidden="true" />
 
                 <div className="relative z-20 flex h-[calc(100vh-88px)] items-center px-4 sm:px-8 max-w-7xl mx-auto w-full">
-                    {/* Added visibility transforms to completely toggle off layout visibility when opacity reaches 0 */}
                     <motion.div
                         style={{ opacity: opacityAct1, y: yAct1, pointerEvents: pointerAct1, visibility: visibilityAct1 }}
                         className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6"
