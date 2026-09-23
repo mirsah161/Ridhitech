@@ -20,7 +20,6 @@ export default function Navbar() {
     const [isHoverExpanded, setIsHoverExpanded] = useState(false);
     const [hoverScrollPos, setHoverScrollPos] = useState(0);
 
-    // PERFORMANCE OPTIMIZATION: Track mobile screen state safely via cached ref and event listener
     const [isMobileScreen, setIsMobileScreen] = useState(
         () => typeof window !== 'undefined' && window.innerWidth < 768
     );
@@ -29,11 +28,18 @@ export default function Navbar() {
     const location = useLocation();
     const ticking = useRef(false);
 
+    // PERFORMANCE FIX: Batch resize checks using requestAnimationFrame
     useEffect(() => {
+        let resizeTicking = false;
         const checkScreenSize = () => {
-            setIsMobileScreen(window.innerWidth < 768);
+            if (!resizeTicking) {
+                window.requestAnimationFrame(() => {
+                    setIsMobileScreen(window.innerWidth < 768);
+                    resizeTicking = false;
+                });
+                resizeTicking = true;
+            }
         };
-        checkScreenSize();
         window.addEventListener('resize', checkScreenSize, { passive: true });
         return () => window.removeEventListener('resize', checkScreenSize);
     }, []);
@@ -54,6 +60,7 @@ export default function Navbar() {
                         const heroElement = document.getElementById('hero');
 
                         if (heroElement) {
+                            // PERFORMANCE FIX: Read layout properties inside rAF safely
                             const heroHeight = heroElement.offsetHeight;
                             const fadeStart = Math.max(0, heroHeight - 300);
                             const fadeEnd = heroHeight;
