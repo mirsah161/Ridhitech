@@ -162,11 +162,7 @@ export default function Work({ data }) {
 
             <div className="max-w-6xl mx-auto w-full px-6 sm:px-8 mb-4 z-20 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <div className="inline-flex items-center space-x-2.5 rounded-full px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 mb-3">
-                        <span className="text-[11px] font-mono font-medium tracking-[0.15em] text-emerald-400 uppercase">
-                            PORTFOLIO // 02
-                        </span>
-                    </div>
+                    
                     <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-snug bg-gradient-to-r from-white via-gray-100 to-emerald-200 bg-clip-text text-transparent font-sans">
                         Engineered for <span className="text-emerald-400">performance.</span>
                     </h2>

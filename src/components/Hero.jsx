@@ -4,29 +4,39 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 const TOTAL_FRAMES = 182;
 const framePath = (index) => `/frames/frame-${String(index).padStart(4, '0')}.webp`;
 
-// The source video is 10s, but only the first 8s is the intended scroll-scrub range.
-const VIDEO_SCRUB_DURATION = 8;
-
 export default function Hero({ servicesData = [] }) {
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const contextRef = useRef(null);
     const imagesRef = useRef([]);
-    const videoRef = useRef(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [loadProgress, setLoadProgress] = useState(0);
+
+    // PERFORMANCE OPTIMIZATION: Cache window dimensions to prevent forced reflows / layout thrashing
+    const dimensionsRef = useRef({
+        width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+        height: typeof window !== 'undefined' ? window.innerHeight : 800,
+    });
 
     const [isMobile, setIsMobile] = useState(
         () => typeof window !== 'undefined' && window.innerWidth < 768
     );
 
     useEffect(() => {
-        const handleBreakpointResize = () => setIsMobile(window.innerWidth < 768);
+        const handleBreakpointResize = () => {
+            dimensionsRef.current = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+            };
+            setIsMobile(window.innerWidth < 768);
+        };
         window.addEventListener('resize', handleBreakpointResize, { passive: true });
         return () => window.removeEventListener('resize', handleBreakpointResize);
     }, []);
 
-    const frameStep = isMobile ? 2 : 1;
+    // PERFORMANCE FIX: Skip more frames on mobile (e.g., every 4th frame = ~45 frames total)
+    // Desktop keeps smooth high-fidelity (every 1st frame)
+    const frameStep = isMobile ? 4 : 1;
 
     const fallbackServices = [
         {
@@ -64,29 +74,8 @@ export default function Hero({ servicesData = [] }) {
 
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
 
-    // Map scroll progress to the first 8s of the 10s source video for synchronized mobile playback
-    const videoTimeTransform = useTransform(scrollYProgress, [0, 1], [0, VIDEO_SCRUB_DURATION]);
-
+    // Optimized frame loading
     useEffect(() => {
-        if (isMobile && videoRef.current) {
-            const unsubscribe = videoTimeTransform.on('change', (latest) => {
-                if (videoRef.current && !isNaN(videoRef.current.duration)) {
-                    // Clamp in case the actual file is ever shorter than VIDEO_SCRUB_DURATION
-                    const clamped = Math.min(latest, videoRef.current.duration);
-                    videoRef.current.currentTime = clamped;
-                }
-            });
-            return () => unsubscribe();
-        }
-    }, [isMobile, videoTimeTransform]);
-
-    // Asynchronous frame preloading for desktop only
-    useEffect(() => {
-        if (isMobile) {
-            setIsLoaded(true);
-            return;
-        }
-
         let cancelled = false;
         const images = new Array(TOTAL_FRAMES);
         imagesRef.current = images;
@@ -99,6 +88,10 @@ export default function Hero({ servicesData = [] }) {
         const totalToLoad = targetFrames.length;
 
         const loadFrame = (index) => new Promise((resolve) => {
+            if (images[index - 1]?.complete && images[index - 1]?.naturalWidth) {
+                resolve(images[index - 1]);
+                return;
+            }
             const img = new Image();
             img.decoding = 'async';
             img.src = framePath(index);
@@ -114,15 +107,20 @@ export default function Hero({ servicesData = [] }) {
             images[index - 1] = img;
         });
 
+        // Load the very first frame immediately to display canvas instantly
         loadFrame(targetFrames[0]).then(() => {
             if (cancelled) return;
             setIsLoaded(true);
 
+            // Lazy/background load subsequent frames in smaller batches to save bandwidth
             const run = async () => {
-                const batchSize = 8;
+                // Smaller batch size on mobile to prevent network choking
+                const batchSize = isMobile ? 2 : 8;
                 for (let i = 1; i < targetFrames.length && !cancelled; i += batchSize) {
                     const batch = targetFrames.slice(i, i + batchSize);
                     await Promise.all(batch.map((frameNum) => loadFrame(frameNum)));
+                    // Tiny yield to keep mobile main thread silky smooth
+                    await new Promise(r => setTimeout(r, isMobile ? 30 : 10));
                 }
             };
 
@@ -139,7 +137,6 @@ export default function Hero({ servicesData = [] }) {
     }, [isMobile, frameStep]);
 
     const render = useCallback((index) => {
-        if (isMobile) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -149,6 +146,7 @@ export default function Hero({ servicesData = [] }) {
 
         let frameNum = Math.min(TOTAL_FRAMES - 1, Math.max(0, Math.floor(index)));
 
+        // Snap to nearest available stepped frame
         if (frameStep > 1) {
             frameNum = Math.floor(frameNum / frameStep) * frameStep;
         }
@@ -165,9 +163,10 @@ export default function Hero({ servicesData = [] }) {
         }
         if (!img?.naturalWidth) return;
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        // Use cached dimensions to completely eliminate forced reflows / layout thrashing
+        const { width, height } = dimensionsRef.current;
+        // Lower DPR multiplier on mobile to save considerable GPU overhead
+        const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.0 : 1.5);
         const targetWidth = Math.round(width * dpr);
         const targetHeight = Math.round(height * dpr);
 
@@ -188,7 +187,6 @@ export default function Hero({ servicesData = [] }) {
     }, [isMobile, frameStep]);
 
     useEffect(() => {
-        if (isMobile) return;
         let raf = 0;
         const unsubscribe = frameIndex.on('change', (latest) => {
             cancelAnimationFrame(raf);
@@ -196,15 +194,12 @@ export default function Hero({ servicesData = [] }) {
         });
 
         render(frameIndex.get());
-        const handleResize = () => render(frameIndex.get());
-        window.addEventListener('resize', handleResize, { passive: true });
 
         return () => {
             cancelAnimationFrame(raf);
             unsubscribe();
-            window.removeEventListener('resize', handleResize);
         };
-    }, [frameIndex, render, isMobile]);
+    }, [frameIndex, render]);
 
     // Opacity, Y-offsets, Pointer-events, and Visibility transforms
     const opacityAct1 = useTransform(scrollYProgress, [0, 0.15, 0.20], [1, 1, 0]);
@@ -231,21 +226,10 @@ export default function Hero({ servicesData = [] }) {
     return (
         <section id="hero" ref={containerRef} aria-labelledby="hero-title" className="relative h-[800vh] bg-black selection:bg-emerald-500 selection:text-black">
             <div className="sticky top-0 h-screen w-full overflow-hidden">
-                {isMobile ? (
-                    <video
-                        ref={videoRef}
-                        src="/videos/hero.mp4"
-                        muted
-                        playsInline
-                        preload="auto"
-                        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-                    />
-                ) : (
-                    <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
-                )}
+                <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
 
-                {/* Background loader indicator (Desktop only) */}
-                {!isLoaded && !isMobile && (
+                {/* Background loader indicator */}
+                {!isLoaded && (
                     <div className="absolute top-6 right-6 z-30 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs font-mono text-emerald-400">
                         <span>LOADING ASSETS ({loadProgress}%)</span>
                     </div>

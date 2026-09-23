@@ -19,7 +19,11 @@ export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isHoverExpanded, setIsHoverExpanded] = useState(false);
     const [hoverScrollPos, setHoverScrollPos] = useState(0);
-    const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+    // PERFORMANCE OPTIMIZATION: Track mobile screen state safely via cached ref and event listener
+    const [isMobileScreen, setIsMobileScreen] = useState(
+        () => typeof window !== 'undefined' && window.innerWidth < 768
+    );
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -30,7 +34,7 @@ export default function Navbar() {
             setIsMobileScreen(window.innerWidth < 768);
         };
         checkScreenSize();
-        window.addEventListener('resize', checkScreenSize);
+        window.addEventListener('resize', checkScreenSize, { passive: true });
         return () => window.removeEventListener('resize', checkScreenSize);
     }, []);
 
@@ -159,7 +163,7 @@ export default function Navbar() {
         >
             <div
                 className={`transition-all duration-300 ease-in-out flex items-center ${isShrunk
-                        ? 'w-auto max-w-[92vw] px-4 py-2 rounded-full border border-white/10 bg-black/70 backdrop-blur-xl shadow-2xl pointer-events-auto'
+                        ? 'w-auto max-w-[92vw] px-4 py-2 rounded-full border border-white/10 bg-black/75 backdrop-blur-xl shadow-2xl pointer-events-auto'
                         : 'w-full max-w-7xl px-4 sm:px-10 justify-between'
                     }`}
                 style={{
@@ -256,6 +260,7 @@ export default function Navbar() {
                 </AnimatePresence>
 
                 <button
+                    type="button"
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-zinc-400 hover:text-white ml-auto cursor-pointer transition-colors"
                     aria-label="Toggle Menu"
