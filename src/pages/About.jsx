@@ -32,6 +32,7 @@ const defaultAboutData = {
 export default function About() {
     const [submitted, setSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
 
     // Fetch data using TanStack Query
     const { data: aboutData = defaultAboutData } = useQuery({
@@ -66,25 +67,18 @@ export default function About() {
                 phone: contactAttr?.Phone || contactAttr?.phone || attr?.Phone || attr?.phone || defaultAboutData.phone,
             };
         },
-        staleTime: 1000 * 60 * 5, // Optional: Cache data for 5 minutes
+        staleTime: 1000 * 60 * 5,
     });
 
     const resolveImageUrl = (logoObj) => {
         let rawUrl = logoObj;
-
-        // Safely extract URL whether passed as a string, direct object, or nested CMS structure
         if (typeof logoObj === 'object' && logoObj !== null) {
             rawUrl = logoObj.url || logoObj.data?.attributes?.url || logoObj.data?.url || '';
         }
-
         if (!rawUrl || typeof rawUrl !== 'string') return '';
-
-        // If the URL is already an absolute link (like Cloudinary), return it as-is
         if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
             return rawUrl;
         }
-
-        // Otherwise, prepend your backend base URL for relative paths
         const baseClean = API_BASE_URL ? API_BASE_URL.replace(/\/api$/, '') : '';
         return `${baseClean}${rawUrl}`;
     };
@@ -93,20 +87,56 @@ export default function About() {
     const addressLine1 = [loc.Building || loc.building, loc.place || loc.Place].filter(Boolean).join(', ');
     const addressLine2 = [loc.pin || loc.Pin, loc.district || loc.District, loc.state || loc.State].filter(Boolean).join(', ');
 
-    // Fixed handleSubmit integrated with backend API and loading state
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMsg('');
+
+        const formElements = e.target.elements;
+
+        // 1. Honeypot Anti-Spam Check
+        if (formElements.website.value) {
+            setSubmitted(true);
+            return;
+        }
+
+        // 2. Simple Email Format Validation Check
+        const emailValue = formElements.email.value;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailValue)) {
+            setErrorMsg('Please enter a valid email address.');
+            return;
+        }
+
         setIsLoading(true);
 
         const formData = {
-            firstName: e.target.firstName.value,
-            lastName: e.target.lastName.value,
-            email: e.target.email.value,
-            message: e.target.message.value,
+            firstName: formElements.firstName.value,
+            lastName: formElements.lastName.value,
+            email: emailValue,
+            message: formElements.message.value,
         };
 
+        const API_BASE_URL_LOCAL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
+
+        // 3. Client-side Rate Limiting Check (e.g., max 3 messages per 10 minutes)
+        const RATE_LIMIT_KEY = 'ridhitech_form_submissions';
+        const MAX_SUBMISSIONS = 3;
+        const WINDOW_TIME_MS = 10 * 60 * 1000; // 10 minutes (or use 24 * 60 * 60 * 1000 for 24h)
+
+        const now = Date.now();
+        const existingLogs = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
+
+        // Filter out timestamps older than the window time
+        const recentLogs = existingLogs.filter(timestamp => now - timestamp < WINDOW_TIME_MS);
+
+        if (recentLogs.length >= MAX_SUBMISSIONS) {
+            setErrorMsg('You have sent too many messages recently. Please try again later.');
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            const response = await fetch('https://rithi-backend.onrender.com/api/messages', {
+            const response = await fetch(`${API_BASE_URL_LOCAL}/api/messages`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -115,14 +145,17 @@ export default function About() {
             });
 
             if (response.ok) {
+                recentLogs.push(now);
+                localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(recentLogs));
                 setSubmitted(true);
                 e.target.reset();
             } else {
-                alert('Failed to send message. Please try again.');
+                const errorData = await response.json();
+                setErrorMsg(errorData?.error?.message || 'Failed to send message. Please try again.');
             }
         } catch (error) {
             console.error('Error submitting form:', error);
-            alert('An error occurred. Please check your connection.');
+            setErrorMsg('An error occurred. Please check your connection.');
         } finally {
             setIsLoading(false);
         }
@@ -345,6 +378,12 @@ export default function About() {
                                             onSubmit={handleSubmit}
                                             className="space-y-4"
                                         >
+                                            {errorMsg && (
+                                                <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 text-center font-mono">
+                                                    {errorMsg}
+                                                </div>
+                                            )}
+
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
@@ -397,6 +436,15 @@ export default function About() {
                                                     className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors resize-none"
                                                 />
                                             </div>
+
+                                            {/* Hidden Honeypot Field */}
+                                            <input
+                                                type="text"
+                                                name="website"
+                                                style={{ display: 'none' }}
+                                                tabIndex="-1"
+                                                autoComplete="off"
+                                            />
 
                                             <button
                                                 type="submit"
