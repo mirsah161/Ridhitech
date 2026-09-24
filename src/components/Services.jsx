@@ -102,9 +102,15 @@ export default function Services({ data }) {
         return () => observer.disconnect();
     }, []);
 
+    // PERFORMANCE FIX: layoutEffect: false stops Framer Motion from measuring
+    // the container's bounding box synchronously inside a layout effect on
+    // every scroll tick, which was the source of the "Forced reflow" warning
+    // (it was fighting the canvas.width/height writes in render() below for
+    // a synchronous layout pass). Measurement now happens in a passive effect.
     const { scrollYProgress } = useScroll({
         target: containerRef,
         offset: ['start start', 'end end'],
+        layoutEffect: false,
     });
 
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
@@ -274,7 +280,9 @@ export default function Services({ data }) {
             ref={containerRef}
             className="relative h-[600vh] bg-black text-white selection:bg-emerald-500 selection:text-black font-sans"
         >
-            <div className="sticky top-0 h-screen w-full overflow-hidden">
+            {/* PERFORMANCE FIX: contain:layout_paint scopes layout/paint recalculation
+                to this box instead of the whole 600vh ancestor section */}
+            <div className="sticky top-0 h-screen w-full overflow-hidden [contain:layout_paint]">
                 <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
 
                 {!isLoaded && (

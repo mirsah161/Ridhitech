@@ -67,9 +67,15 @@ export default function Hero({ servicesData = [] }) {
         activeServices.push(fallbackServices[activeServices.length] || fallbackServices[0]);
     }
 
+    // PERFORMANCE FIX: layoutEffect: false stops Framer Motion from measuring
+    // the container's bounding box synchronously inside a layout effect on
+    // every scroll tick, which was the source of the "Forced reflow" warning
+    // (it was fighting the canvas.width/height writes in render() below for
+    // a synchronous layout pass). Measurement now happens in a passive effect.
     const { scrollYProgress } = useScroll({
         target: containerRef,
         offset: ['start start', 'end end'],
+        layoutEffect: false,
     });
 
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
@@ -225,7 +231,9 @@ export default function Hero({ servicesData = [] }) {
 
     return (
         <section id="hero" ref={containerRef} aria-labelledby="hero-title" className="relative h-[800vh] bg-black selection:bg-emerald-500 selection:text-black">
-            <div className="sticky top-0 h-screen w-full overflow-hidden">
+            {/* PERFORMANCE FIX: contain:layout_paint scopes layout/paint recalculation
+                to this box instead of the whole 800vh ancestor section */}
+            <div className="sticky top-0 h-screen w-full overflow-hidden [contain:layout_paint]">
                 <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
 
                 {/* Background loader indicator */}

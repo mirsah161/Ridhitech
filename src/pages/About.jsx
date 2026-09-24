@@ -235,7 +235,7 @@ export default function About() {
                                     <span className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">Collaborations</span>
                                     <h3 className="text-3xl font-extrabold tracking-tight mt-1 text-white">Trusted Clients</h3>
                                 </div>
-                                <span className="text-xs font-mono text-zinc-500">Organizations we build long-term value for</span>
+                                
                             </div>
 
                             <div className="relative w-full overflow-hidden py-4 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
@@ -273,7 +273,7 @@ export default function About() {
                                     <span className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">Ecosystem</span>
                                     <h3 className="text-3xl font-extrabold tracking-tight mt-1 text-white">Technology Partners</h3>
                                 </div>
-                                <span className="text-xs font-mono text-zinc-500">Platforms and network tools we utilize</span>
+                               
                             </div>
 
                             <div className="relative w-full overflow-hidden py-4 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
