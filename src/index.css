@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@layer base {
+  * {
+    font-display: swap;
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -64,5 +70,5 @@ a {
 }
 
 .grecaptcha-badge {
-    visibility: hidden !important;
+  visibility: hidden !important;
 }

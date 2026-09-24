@@ -28,21 +28,37 @@ export default function Navbar() {
     const location = useLocation();
     const ticking = useRef(false);
 
-    // PERFORMANCE FIX: Batch resize checks using requestAnimationFrame
+    // PERFORMANCE FIX: Cache hero height to prevent layout thrashing / forced reflows
+    const heroHeightRef = useRef(0);
+
+    // PERFORMANCE FIX: Batch resize checks using requestAnimationFrame and cache hero height
     useEffect(() => {
         let resizeTicking = false;
         const checkScreenSize = () => {
             if (!resizeTicking) {
                 window.requestAnimationFrame(() => {
                     setIsMobileScreen(window.innerWidth < 768);
+
+                    const heroElement = document.getElementById('hero');
+                    if (heroElement) {
+                        heroHeightRef.current = heroElement.offsetHeight;
+                    }
+
                     resizeTicking = false;
                 });
                 resizeTicking = true;
             }
         };
+
+        // Initial measurement
+        const heroElement = document.getElementById('hero');
+        if (heroElement) {
+            heroHeightRef.current = heroElement.offsetHeight;
+        }
+
         window.addEventListener('resize', checkScreenSize, { passive: true });
         return () => window.removeEventListener('resize', checkScreenSize);
-    }, []);
+    }, [location.pathname]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -57,11 +73,10 @@ export default function Navbar() {
                     }
 
                     if (location.pathname === '/') {
-                        const heroElement = document.getElementById('hero');
+                        // PERFORMANCE FIX: Use cached ref value instead of triggering a synchronous layout read
+                        const heroHeight = heroHeightRef.current;
 
-                        if (heroElement) {
-                            // PERFORMANCE FIX: Read layout properties inside rAF safely
-                            const heroHeight = heroElement.offsetHeight;
+                        if (heroHeight > 0) {
                             const fadeStart = Math.max(0, heroHeight - 300);
                             const fadeEnd = heroHeight;
 
@@ -170,8 +185,8 @@ export default function Navbar() {
         >
             <div
                 className={`transition-all duration-300 ease-in-out flex items-center ${isShrunk
-                        ? 'w-auto max-w-[92vw] px-4 py-2 rounded-full border border-white/10 bg-black/75 backdrop-blur-xl shadow-2xl pointer-events-auto'
-                        : 'w-full max-w-7xl px-4 sm:px-10 justify-between'
+                    ? 'w-auto max-w-[92vw] px-4 py-2 rounded-full border border-white/10 bg-black/75 backdrop-blur-xl shadow-2xl pointer-events-auto'
+                    : 'w-full max-w-7xl px-4 sm:px-10 justify-between'
                     }`}
                 style={{
                     backgroundColor: isShrunk ? undefined : `rgba(0, 0, 0, ${bgOpacity})`,
@@ -202,8 +217,8 @@ export default function Navbar() {
 
                 <nav
                     className={`hidden md:flex items-center space-x-1 rounded-full transition-all duration-300 ${isShrunk
-                            ? 'bg-transparent border-none p-0'
-                            : 'border border-white/10 bg-white/[0.03] backdrop-blur-lg p-1.5 shadow-inner'
+                        ? 'bg-transparent border-none p-0'
+                        : 'border border-white/10 bg-white/[0.03] backdrop-blur-lg p-1.5 shadow-inner'
                         }`}
                 >
                     {navItems.map((item) => {
@@ -306,8 +321,8 @@ export default function Navbar() {
                                         handleNavClick(e, item);
                                     }}
                                     className={`px-4 py-3 rounded-xl text-xs font-mono tracking-[0.2em] uppercase transition-all ${isActive
-                                            ? 'bg-emerald-400 text-black font-bold shadow-lg shadow-emerald-400/20'
-                                            : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                                        ? 'bg-emerald-400 text-black font-bold shadow-lg shadow-emerald-400/20'
+                                        : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                                         }`}
                                 >
                                     {item.name}

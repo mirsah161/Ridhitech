@@ -1,8 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUp } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { useEffect, useState } from 'react';
 
 export default function Footer() {
+
+    const [shouldFetch, setShouldFetch] = useState(false);
+
+    useEffect(() => {
+        // Defer the footer network request until the browser is idle or after 1 second
+        const timer = setTimeout(() => {
+            setShouldFetch(true);
+        }, 1000); // 1-second delay ensures LCP and critical bundle requests finish first
+
+        return () => clearTimeout(timer);
+    }, [])
+
     const { data, isLoading: loading } = useQuery({
         queryKey: ['footerData'],
         queryFn: async () => {
@@ -13,7 +26,8 @@ export default function Footer() {
             const item = resJson.data;
             return item.attributes ? { id: item.id, ...item.attributes } : item;
         },
-        staleTime: 1000 * 60 * 10, // Cache footer data for 10 minutes
+        enabled: shouldFetch, 
+        staleTime: 1000 * 60 * 10,
     });
 
     const scrollToTop = (e) => {

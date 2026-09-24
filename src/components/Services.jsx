@@ -28,12 +28,19 @@ export default function Services({ data }) {
     );
 
     useEffect(() => {
+        let resizeTicking = false;
         const handleBreakpointResize = () => {
-            dimensionsRef.current = {
-                width: window.innerWidth,
-                height: window.innerHeight,
-            };
-            setIsMobile(window.innerWidth < 768);
+            if (!resizeTicking) {
+                window.requestAnimationFrame(() => {
+                    dimensionsRef.current = {
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                    };
+                    setIsMobile(window.innerWidth < 768);
+                    resizeTicking = false;
+                });
+                resizeTicking = true;
+            }
         };
         window.addEventListener('resize', handleBreakpointResize, { passive: true });
         return () => window.removeEventListener('resize', handleBreakpointResize);
