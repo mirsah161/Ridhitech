@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Cpu, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import SEO from '../components/SEO';
 
 const defaultAboutData = {
@@ -87,19 +88,21 @@ export default function About() {
     const addressLine1 = [loc.Building || loc.building, loc.place || loc.Place].filter(Boolean).join(', ');
     const addressLine2 = [loc.pin || loc.Pin, loc.district || loc.District, loc.state || loc.State].filter(Boolean).join(', ');
 
+    const { executeRecaptcha } = useGoogleReCaptcha(); //Extract the execute function
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMsg('');
 
         const formElements = e.target.elements;
 
-        // 1. Honeypot Anti-Spam Check
+        // Honeypot Anti-Spam Check 
         if (formElements.website.value) {
             setSubmitted(true);
             return;
         }
 
-        // 2. Simple Email Format Validation Check
+        // Simple Email Format Validation Check
         const emailValue = formElements.email.value;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(emailValue)) {
@@ -107,35 +110,43 @@ export default function About() {
             return;
         }
 
-        setIsLoading(true);
-
-        const formData = {
-            firstName: formElements.firstName.value,
-            lastName: formElements.lastName.value,
-            email: emailValue,
-            message: formElements.message.value,
-        };
-
-        const API_BASE_URL_LOCAL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
-
-        // 3. Client-side Rate Limiting Check (e.g., max 3 messages per 10 minutes)
-        const RATE_LIMIT_KEY = 'ridhitech_form_submissions';
-        const MAX_SUBMISSIONS = 3;
-        const WINDOW_TIME_MS = 10 * 60 * 1000; // 10 minutes (or use 24 * 60 * 60 * 1000 for 24h)
-
-        const now = Date.now();
-        const existingLogs = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
-
-        // Filter out timestamps older than the window time
-        const recentLogs = existingLogs.filter(timestamp => now - timestamp < WINDOW_TIME_MS);
-
-        if (recentLogs.length >= MAX_SUBMISSIONS) {
-            setErrorMsg('You have sent too many messages recently. Please try again later.');
-            setIsLoading(false);
+        // Check if reCAPTCHA is ready
+        if (!executeRecaptcha) {
+            setErrorMsg('Security check is still loading. Please try again in a moment.');
             return;
         }
 
+        setIsLoading(true);
+
         try {
+            // Generate Google reCAPTCHA v3 invisible token
+            const token = await executeRecaptcha('contact_submit');
+
+            const formData = {
+                firstName: formElements.firstName.value,
+                lastName: formElements.lastName.value,
+                email: emailValue,
+                message: formElements.message.value,
+                token: token, // Send the security token to backend
+            };
+
+            const API_BASE_URL_LOCAL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
+
+            // Client-side Rate Limiting Check 
+            const RATE_LIMIT_KEY = 'ridhitech_form_submissions';
+            const MAX_SUBMISSIONS = 3;
+            const WINDOW_TIME_MS = 10 * 60 * 1000; // 10 minutes 
+
+            const now = Date.now();
+            const existingLogs = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
+            const recentLogs = existingLogs.filter(timestamp => now - timestamp < WINDOW_TIME_MS);
+
+            if (recentLogs.length >= MAX_SUBMISSIONS) {
+                setErrorMsg('You have sent too many messages recently. Please try again later.');
+                setIsLoading(false);
+                return;
+            }
+
             const response = await fetch(`${API_BASE_URL_LOCAL}/api/messages`, {
                 method: 'POST',
                 headers: {
@@ -437,7 +448,6 @@ export default function About() {
                                                 />
                                             </div>
 
-                                            {/* Hidden Honeypot Field */}
                                             <input
                                                 type="text"
                                                 name="website"
@@ -457,6 +467,11 @@ export default function About() {
                                                     <span>Submit</span>
                                                 )}
                                             </button>
+                                            <p className="text-[11px] text-zinc-500 text-center mt-3">
+                                                This site is protected by reCAPTCHA and the Google{' '}
+                                                <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="underline">Privacy Policy</a> and{' '}
+                                                <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer" className="underline">Terms of Service</a> apply.
+                                            </p>
                                         </motion.form>
                                     )}
                                 </AnimatePresence>

@@ -62,3 +62,7 @@ a {
 .animate-marquee-reverse:hover {
   animation-play-state: paused;
 }
+
+.grecaptcha-badge {
+    visibility: hidden !important;
+}
