@@ -40,16 +40,16 @@ export default function Hero({ servicesData = [] }) {
 
     const fallbackServices = [
         {
-            title: 'Technology That Drives Your Growth',
-            description: 'Scalable, enterprise-grade engineering built for modern enterprises.'
+            title: 'Web Designing & Hosting',
+            description: 'Professional web development services with secure, high-speed architecture.'
         },
         {
-            title: 'High-Performance Architecture',
-            description: 'Engineered for low latency, security, and high availability.'
+            title: 'Ecommerce Solutions',
+            description: 'Full range of Search Engine Optimization and E-commerce platform implementations.'
         },
         {
-            title: 'Enterprise Scale & Cloud',
-            description: 'Multi-cloud orchestration and resilient infrastructure frameworks.'
+            title: 'IT Infrastructure & WIFI Solutions',
+            description: 'Key value drivers for enterprise environments requiring flexible, secure networks.'
         }
     ];
 

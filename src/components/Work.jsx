@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config/api';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
+import epicon from '../assets/epicon.png'
+import goal from '../assets/goal.png'
+import sarkars from '../assets/sarkars.png'
+import zodiac from '../assets/zodiac.png'
 
 export default function Work({ data }) {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -16,34 +20,34 @@ export default function Work({ data }) {
             Title: 'THE AURA ENGINE',
             Description: 'High-frequency algorithmic trading dashboard with real-time risk telemetry.',
             LiveUrl: '#',
-            Thumbnail: { url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80' },
+            Thumbnail: { url: epicon },
             tags: [{ tagName: 'React' }, { tagName: 'TypeScript' }]
         },
         {
             id: 2,
             Category: 'CLOUD TELEMETRY',
-            Title: 'THE PINEWOOD MESH',
+            Title: 'GOAL PETROLEUM',
             Description: 'Distributed microservices monitoring tool tracking live server health.',
             LiveUrl: '#',
-            Thumbnail: { url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80' },
+            Thumbnail: { url: goal },
             tags: [{ tagName: 'Next.js' }, { tagName: 'GraphQL' }]
         },
         {
             id: 3,
-            Category: 'AI WORKFLOW',
+            Category: 'SARKARS',
             Title: 'THE STONE RIDGE AI',
             Description: 'Enterprise AI orchestrator enabling automated document analysis pipelines.',
             LiveUrl: '#',
-            Thumbnail: { url: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1200&q=80' },
+            Thumbnail: { url: sarkars },
             tags: [{ tagName: 'Python' }, { tagName: 'FastAPI' }]
         },
         {
             id: 4,
             Category: 'CYBERSECURITY',
-            Title: 'VANGUARD VAULT',
+            Title: 'ZODIAC HOLIDAYS',
             Description: 'End-to-end encrypted asset portal with automated compliance auditing.',
             LiveUrl: '#',
-            Thumbnail: { url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80' },
+            Thumbnail: { url: zodiac },
             tags: [{ tagName: 'Docker' }, { tagName: 'WebAuthn' }]
         }
     ];

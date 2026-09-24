@@ -3,6 +3,15 @@ import { ArrowUp } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { useEffect, useState } from 'react';
 
+// Reused from Services.jsx / ServicesPage.jsx so the footer's service list
+// stays consistent with the rest of the site before the API responds.
+const fallbackServices = [
+    { id: 1, Title: 'Web Designing & Hosting' },
+    { id: 2, Title: 'Ecommerce Solutions' },
+    { id: 3, Title: 'IT Infrastructure & WIFI Solutions' },
+    { id: 4, Title: 'Cloud Based Solutions' },
+];
+
 export default function Footer() {
 
     const [shouldFetch, setShouldFetch] = useState(false);
@@ -16,7 +25,7 @@ export default function Footer() {
         return () => clearTimeout(timer);
     }, [])
 
-    const { data, isLoading: loading } = useQuery({
+    const { data } = useQuery({
         queryKey: ['footerData'],
         queryFn: async () => {
             const res = await fetch(`${API_BASE_URL}/api/footer-link?populate=*`);
@@ -26,7 +35,10 @@ export default function Footer() {
             const item = resJson.data;
             return item.attributes ? { id: item.id, ...item.attributes } : item;
         },
-        enabled: shouldFetch, 
+        enabled: shouldFetch,
+        // PERFORMANCE FIX: keep previously-resolved data across refetches
+        // instead of clearing it back to undefined
+        placeholderData: (prev) => prev,
         staleTime: 1000 * 60 * 10,
     });
 
@@ -40,7 +52,7 @@ export default function Footer() {
 
     const socialLinks = data?.social_links || [];
     const trustBadge = data?.trustBadges;
-    const connectedServices = (data?.services || []).slice(0, 5);
+    const connectedServices = (data?.services?.length > 0 ? data.services : fallbackServices).slice(0, 5);
     const addressComp = data?.footerAddress?.[0];
 
     const quickLinks = [
@@ -79,27 +91,21 @@ export default function Footer() {
                     <div className="space-y-6">
                         <h3 className="text-sm font-mono uppercase tracking-widest text-zinc-400 font-semibold">Follow Us</h3>
                         <div className="flex items-center space-x-3">
-                            {loading ? (
-                                [...Array(4)].map((_, idx) => (
-                                    <div key={idx} className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 animate-pulse" />
-                                ))
-                            ) : (
-                                socialLinks.map((item, idx) => {
-                                    const platformName = item.platform;
-                                    return (
-                                        <a
-                                            key={item.id || idx}
-                                            href={item.URL}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 text-zinc-300 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all shadow-md"
-                                            aria-label={`Visit our ${platformName} page`}
-                                        >
-                                            {renderSocialIcon(platformName)}
-                                        </a>
-                                    );
-                                })
-                            )}
+                            {socialLinks.map((item, idx) => {
+                                const platformName = item.platform;
+                                return (
+
+                                    <a key={item.id || idx}
+                                        href={item.URL}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 text-zinc-300 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all shadow-md"
+                                        aria-label={`Visit our ${platformName} page`}
+                                    >
+                                        {renderSocialIcon(platformName)}
+                                    </a>
+                                );
+                            })}
                         </div>
 
                         {trustBadge?.url && (
@@ -135,34 +141,19 @@ export default function Footer() {
                     <div className="space-y-4">
                         <h3 className="text-sm font-mono uppercase tracking-widest text-zinc-400 font-semibold">Our Services</h3>
                         <ul className="space-y-2.5">
-                            {loading ? (
-                                [...Array(4)].map((_, idx) => (
-                                    <li key={idx}>
-                                        <div className="h-3.5 w-28 rounded bg-white/5 animate-pulse" />
-                                    </li>
-                                ))
-                            ) : connectedServices.length > 0 ? (
-                                connectedServices.map((service, idx) => (
-                                    <li key={service.id || idx}>
-                                        <a href={`/services`} className="text-zinc-300 hover:text-emerald-400 transition-colors text-sm">
-                                            {service.Title}
-                                        </a>
-                                    </li>
-                                ))
-                            ) : (
-                                <li className="text-zinc-500 text-sm italic">No services linked</li>
-                            )}
+                            {connectedServices.map((service, idx) => (
+                                <li key={service.id || idx}>
+                                    <a href={`/services`} className="text-zinc-300 hover:text-emerald-400 transition-colors text-sm">
+                                        {service.Title}
+                                    </a>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
                     <div className="space-y-4">
                         <h3 className="text-sm font-mono uppercase tracking-widest text-zinc-400 font-semibold">Ridhitech India</h3>
-                        {loading ? (
-                            <div className="space-y-2">
-                                <div className="h-3.5 w-40 rounded bg-white/5 animate-pulse" />
-                                <div className="h-3.5 w-32 rounded bg-white/5 animate-pulse" />
-                            </div>
-                        ) : addressComp ? (
+                        {addressComp ? (
                             <p className="text-zinc-300 text-sm leading-relaxed font-sans">
                                 {addressComp.Building}, {addressComp.place}, {addressComp.pin ? `${addressComp.pin}, ` : ''}
                                 {addressComp.district ? `${addressComp.district}, ` : ''}

@@ -7,8 +7,8 @@ import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recapt
 import SEO from '../components/SEO';
 
 const defaultAboutData = {
-    title: 'Building Reliable Infrastructure & Software for Growing Businesses.',
-    description: 'At Ridhitech India, we believe technology should solve real operational friction. We partner with organizations to build resilient network systems, secure architectures, and custom web applications that scale with purpose.',
+    title: 'Ridhitech India',
+    description: 'A business needs technology to drive its growth and stability. We help you take the lead with an array of comprehensive IT services that cover systems and network services, web services and customized software development.',
     vision: 'To be a trusted engineering partner for businesses navigating digital transformation, known for technical precision, reliability, and long-term value.',
     mission: 'To deliver robust, high-performance IT infrastructure and digital solutions through rigorous execution and transparent collaboration.',
     clients: [

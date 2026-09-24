@@ -6,6 +6,35 @@ import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
+// Reused from Services.jsx so the homepage section and this page stay
+// consistent when the API hasn't responded yet.
+const fallbackServices = [
+    {
+        id: 1,
+        title: 'Web Designing & Hosting',
+        description: 'Professional web development services with secure, high-speed architecture.',
+        iconUrl: null,
+    },
+    {
+        id: 2,
+        title: 'Ecommerce Solutions',
+        description: 'Full range of Search Engine Optimization and E-commerce platform implementations.',
+        iconUrl: null,
+    },
+    {
+        id: 3,
+        title: 'IT Infrastructure & WIFI Solutions',
+        description: 'Key value drivers for enterprise environments requiring flexible, secure networks.',
+        iconUrl: null,
+    },
+    {
+        id: 4,
+        title: 'Cloud Based Solutions',
+        description: 'High-availability multi-cloud orchestration engineered for seamless scalability.',
+        iconUrl: null,
+    },
+];
+
 function ServiceCard({ service, index }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const isLongDescription = service.description.length > 110;
@@ -65,8 +94,8 @@ function ServiceCard({ service, index }) {
             </div>
 
             <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                <a
-                    href="/#contact"
+
+                <a href="/#contact"
                     className="inline-flex items-center space-x-2 text-xs font-mono font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
                     <span>INITIATE PROJECT</span>
@@ -78,7 +107,7 @@ function ServiceCard({ service, index }) {
 }
 
 export default function ServicesPage() {
-    const { data, isLoading } = useQuery({
+    const { data } = useQuery({
         queryKey: ['servicesPageData'],
         queryFn: async () => {
             const [servicesRes, pageRes] = await Promise.all([
@@ -117,14 +146,22 @@ export default function ServicesPage() {
             const pageContent = fetchedPageData ? (fetchedPageData.attributes || fetchedPageData) : {};
 
             return {
-                services: formattedServices,
+                services: formattedServices.length > 0 ? formattedServices : fallbackServices,
                 pageContent,
             };
         },
+        // PERFORMANCE FIX: keep the previously-rendered data on screen across
+        // refetches instead of clearing it, so there's never a moment with
+        // nothing to render
+        placeholderData: (prev) => prev,
         staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     });
 
-    const services = data?.services || [];
+    // PERFORMANCE FIX: no isLoading gate — render fallback content
+    // immediately on first paint, then it's replaced in place once the
+    // Render-hosted API responds. Removes this page from the network
+    // dependency chain the same way Home.jsx was fixed.
+    const services = data?.services ?? fallbackServices;
     const pageContent = data?.pageContent || {};
 
     return (
@@ -140,7 +177,7 @@ export default function ServicesPage() {
             <div className="absolute top-2/3 right-1/4 -z-10 h-80 w-80 rounded-full bg-teal-500/5 blur-[100px] pointer-events-none" />
 
             <div className="mb-16 border-b border-white/10 pb-8">
-                
+
                 <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4 font-sans">
                     {pageContent.Heading || 'Engineered solutions for '}
                     <span className="text-emerald-400">
@@ -152,21 +189,12 @@ export default function ServicesPage() {
                 </p>
             </div>
 
-            {isLoading ? (
-                /* Updated loading skeleton grid to show 4 columns on large screens */
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
-                    {[1, 2, 3, 4].map((n) => (
-                        <div key={n} className="h-64 rounded-2xl border border-white/10 bg-zinc-900/40 backdrop-blur-sm animate-pulse" />
-                    ))}
-                </div>
-            ) : (
-                /* Updated main services grid to show 4 columns on large screens */
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
-                    {services.map((service, index) => (
-                        <ServiceCard key={service.id || index} service={service} index={index} />
-                    ))}
-                </div>
-            )}
+            {/* Updated main services grid to show 4 columns on large screens */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
+                {services.map((service, index) => (
+                    <ServiceCard key={service.id || index} service={service} index={index} />
+                ))}
+            </div>
 
             <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-zinc-900/40 to-black p-8 sm:p-12 text-center relative overflow-hidden backdrop-blur-sm shadow-xl">
                 <div className="relative z-10 max-w-2xl mx-auto">
