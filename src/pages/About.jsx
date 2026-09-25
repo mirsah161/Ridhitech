@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config/api';
-import { motion, AnimatePresence } from 'framer-motion';
+// A11Y: MotionConfig lets these animations respect the OS "reduce motion" setting.
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Target, Cpu, Mail, Phone, MapPin, CheckCircle2, X } from 'lucide-react';
 import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import SEO from '../components/SEO';
@@ -30,9 +31,40 @@ const defaultAboutData = {
     phone: '+91989-561-1166',
 };
 
+// PERF: fires once when the referenced element comes within `rootMargin` of
+// the viewport, then disconnects. Used below to delay loading the reCAPTCHA
+// script (and its network chain) until the contact form is actually about
+// to be seen, instead of on every About page load.
+function useInView(rootMargin = '500px') {
+    const ref = useRef(null);
+    const [inView, setInView] = useState(false);
+
+    useEffect(() => {
+        if (inView || !ref.current) return;
+        if (typeof IntersectionObserver === 'undefined') {
+            // Fail safe: if the API isn't available, just show the form.
+            setInView(true);
+            return;
+        }
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setInView(true);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin }
+        );
+        observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, [inView, rootMargin]);
+
+    return [ref, inView];
+}
+
 function ContactForm() {
 
-    const { executeRecaptcha } = useGoogleReCaptcha(); //Extract the execute function
+    const { executeRecaptcha } = useGoogleReCaptcha(); 
 
     const [submitted, setSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -121,128 +153,133 @@ function ContactForm() {
     };
 
     return (
-        <div className="lg:col-span-6 flex flex-col">
-            <div className="flex-1 flex flex-col justify-center rounded-2xl border border-white/10 bg-zinc-950 p-6 sm:p-8 shadow-xl">
-                <AnimatePresence mode="wait">
-                    {submitted ? (
-                        <motion.div
-                            key="success"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="py-16 text-center space-y-3 relative" /* Added relative here */
+        <div className="flex-1 flex flex-col justify-center rounded-2xl border border-white/10 bg-zinc-950 p-6 sm:p-8 shadow-xl">
+            <AnimatePresence mode="wait">
+                {submitted ? (
+                    <motion.div
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="py-16 text-center space-y-3 relative" /* Added relative here */
+                    >
+                        {/* Top Right Close Button */}
+                        <button
+                            onClick={() => setSubmitted(false)}
+                            className="absolute top-[-20%] right-0 p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                            aria-label="Close success message"
                         >
-                            {/* Top Right Close Button */}
-                            <button
-                                onClick={() => setSubmitted(false)}
-                                className="absolute top-[-20%] right-0 p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                                aria-label="Close success message"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
+                            <X aria-hidden="true" className="h-4 w-4" />
+                        </button>
 
-                            <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto animate-bounce" />
-                            <h3 className="text-xl font-bold text-white">Message Sent!</h3>
-                            <p className="text-zinc-400 text-sm max-w-xs mx-auto">
-                                We’ve received your message and will respond within 24 hours.
-                            </p>
-                        </motion.div>
-                    ) : (
-                        <motion.form
-                            key="form"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onSubmit={handleSubmit}
-                            className="space-y-4"
-                        >
-                            {errorMsg && (
-                                <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 text-center font-mono">
-                                    {errorMsg}
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
-                                        Your Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="firstName"
-                                        required
-                                        placeholder="Your name"
-                                        className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
-                                        Last Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="lastName"
-                                        required
-                                        placeholder="Your last name"
-                                        className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors"
-                                    />
-                                </div>
+                        <CheckCircle2 aria-hidden="true" className="h-12 w-12 text-emerald-400 mx-auto animate-bounce" />
+                        <h3 className="text-xl font-bold text-white">Message Sent!</h3>
+                        <p className="text-zinc-400 text-sm max-w-xs mx-auto">
+                            We’ve received your message and will respond within 24 hours.
+                        </p>
+                    </motion.div>
+                ) : (
+                    <motion.form
+                        key="form"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onSubmit={handleSubmit}
+                        className="space-y-4"
+                    >
+                        {errorMsg && (
+                            <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 text-center font-mono">
+                                {errorMsg}
                             </div>
+                        )}
 
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
-                                    Email address
+                                {/* A11Y: htmlFor/id programmatically associates each label with its input */}
+                                <label htmlFor="firstName" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
+                                    Your Name
                                 </label>
                                 <input
-                                    type="email"
-                                    name="email"
+                                    id="firstName"
+                                    type="text"
+                                    name="firstName"
                                     required
-                                    placeholder="Your email address"
-                                    className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                                    placeholder="Your name"
+                                    // A11Y: placeholder-zinc-600 was ~2.7:1 on black; zinc-400 clears 4.5:1
+                                    className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors"
                                 />
                             </div>
-
                             <div>
-                                <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
-                                    Message
+                                <label htmlFor="lastName" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
+                                    Last Name
                                 </label>
-                                <textarea
-                                    name="message"
+                                <input
+                                    id="lastName"
+                                    type="text"
+                                    name="lastName"
                                     required
-                                    rows={4}
-                                    placeholder="Write something...."
-                                    className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none transition-colors resize-none"
+                                    placeholder="Your last name"
+                                    className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors"
                                 />
                             </div>
+                        </div>
 
+                        <div>
+                            <label htmlFor="email" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
+                                Email address
+                            </label>
                             <input
-                                type="text"
-                                name="website"
-                                style={{ display: 'none' }}
-                                tabIndex="-1"
-                                autoComplete="off"
+                                id="email"
+                                type="email"
+                                name="email"
+                                required
+                                placeholder="Your email address"
+                                className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
+                        </div>
 
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-mono font-semibold text-black hover:bg-emerald-400 transition-all flex items-center justify-center space-x-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer mt-2"
-                            >
-                                {isLoading ? (
-                                    <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <span>Submit</span>
-                                )}
-                            </button>
-                            <p className="text-[11px] text-zinc-500 text-center mt-3">
-                                This site is protected by reCAPTCHA and the Google{' '}
-                                <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="underline">Privacy Policy</a> and{' '}
-                                <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer" className="underline">Terms of Service</a> apply.
-                            </p>
-                        </motion.form>
-                    )}
-                </AnimatePresence>
-            </div>
+                        <div>
+                            <label htmlFor="message" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
+                                Message
+                            </label>
+                            <textarea
+                                id="message"
+                                name="message"
+                                required
+                                rows={4}
+                                placeholder="Write something...."
+                                className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors resize-none"
+                            />
+                        </div>
+
+                        <input
+                            type="text"
+                            name="website"
+                            style={{ display: 'none' }}
+                            tabIndex="-1"
+                            autoComplete="off"
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-mono font-semibold text-black hover:bg-emerald-400 transition-all flex items-center justify-center space-x-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer mt-2"
+                        >
+                            {isLoading ? (
+                                <div aria-hidden="true" className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <span>Submit</span>
+                            )}
+                        </button>
+                        {/* A11Y: text-zinc-500 was ~4.35:1 on black (fails 4.5:1 for small text); zinc-400 clears it */}
+                        <p className="text-[11px] text-zinc-400 text-center mt-3">
+                            This site is protected by reCAPTCHA and the Google{' '}
+                            <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">Privacy Policy</a> and{' '}
+                            <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer" className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">Terms of Service</a> apply.
+                        </p>
+                    </motion.form>
+                )}
+            </AnimatePresence>
         </div>
     )
 
@@ -304,208 +341,241 @@ export default function About() {
     const addressLine1 = [loc.Building || loc.building, loc.place || loc.Place].filter(Boolean).join(', ');
     const addressLine2 = [loc.pin || loc.Pin, loc.district || loc.District, loc.state || loc.State].filter(Boolean).join(', ');
 
-
-
+    // PERF: gates the reCAPTCHA provider (and its network chain) behind
+    // scroll proximity instead of loading it on every About page visit.
+    const [contactRef, contactInView] = useInView('500px');
 
     return (
-        <main className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500 selection:text-black pt-32 pb-24 relative overflow-hidden">
-            <SEO
-                title="About Us"
-                description={aboutData.description}
-                path="/about"
-            />
+        <MotionConfig reducedMotion="user">
+            <main className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500 selection:text-black pt-32 pb-24 relative overflow-hidden">
+                <SEO
+                    title="About Us"
+                    description={aboutData.description}
+                    path="/about"
+                />
 
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-emerald-500/5 blur-[140px] pointer-events-none rounded-full" />
-            <div className="absolute top-[40%] right-[-10%] w-[500px] h-[500px] bg-emerald-600/5 blur-[160px] pointer-events-none rounded-full" />
+                {/* A11Y: purely decorative, hidden from assistive tech */}
+                <div aria-hidden="true" className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-emerald-500/5 blur-[140px] pointer-events-none rounded-full" />
+                <div aria-hidden="true" className="absolute top-[40%] right-[-10%] w-[500px] h-[500px] bg-emerald-600/5 blur-[160px] pointer-events-none rounded-full" />
 
-            <div className="max-w-5xl mx-auto px-6 sm:px-8 space-y-28 relative z-10">
+                <div className="max-w-5xl mx-auto px-6 sm:px-8 space-y-28 relative z-10">
 
-                <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6 max-w-3xl border-l-2 border-emerald-500 pl-6 sm:pl-8"
-                >
-                    <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.15]">
-                        {aboutData.title}
-                    </h1>
-                    <p className="text-zinc-400 text-base sm:text-lg leading-relaxed font-sans pt-2">
-                        {aboutData.description}
-                    </p>
-                </motion.div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-md p-8 sm:p-10 space-y-4 hover:border-emerald-500/40 transition-all shadow-2xl relative group">
-                        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="flex items-center space-x-3 text-emerald-400">
-                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                                <Target className="h-5 w-5" />
-                            </div>
-                            <h3 className="font-mono text-sm uppercase tracking-wider text-white font-bold">Our Vision</h3>
-                        </div>
-                        <p className="text-zinc-300 text-sm sm:text-base leading-relaxed">
-                            {aboutData.vision}
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="space-y-6 max-w-3xl border-l-2 border-emerald-500 pl-6 sm:pl-8"
+                    >
+                        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.15]">
+                            {aboutData.title}
+                        </h1>
+                        <p className="text-zinc-400 text-base sm:text-lg leading-relaxed font-sans pt-2">
+                            {aboutData.description}
                         </p>
+                    </motion.div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-md p-8 sm:p-10 space-y-4 hover:border-emerald-500/40 transition-all shadow-2xl relative group">
+                            <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex items-center space-x-3 text-emerald-400">
+                                <div aria-hidden="true" className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                                    <Target className="h-5 w-5" />
+                                </div>
+                                {/* A11Y: h3 -> h2. This and the three headings below sit directly under the
+                                    page's h1 with nothing in between, so they belong at the same level
+                                    (fixes "Heading elements are not in a sequentially-descending order") */}
+                                <h2 className="font-mono text-sm uppercase tracking-wider text-white font-bold">Our Vision</h2>
+                            </div>
+                            <p className="text-zinc-300 text-sm sm:text-base leading-relaxed">
+                                {aboutData.vision}
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-md p-8 sm:p-10 space-y-4 hover:border-emerald-500/40 transition-all shadow-2xl relative group">
+                            <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex items-center space-x-3 text-emerald-400">
+                                <div aria-hidden="true" className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                                    <Cpu className="h-5 w-5" />
+                                </div>
+                                <h2 className="font-mono text-sm uppercase tracking-wider text-white font-bold">Our Mission</h2>
+                            </div>
+                            <p className="text-zinc-300 text-sm sm:text-base leading-relaxed">
+                                {aboutData.mission}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-md p-8 sm:p-10 space-y-4 hover:border-emerald-500/40 transition-all shadow-2xl relative group">
-                        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="flex items-center space-x-3 text-emerald-400">
-                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                                <Cpu className="h-5 w-5" />
+                    <div className="space-y-16 overflow-hidden">
+                        {aboutData.clients && aboutData.clients.length > 0 && (
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                                    <div>
+                                        <span className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">Collaborations</span>
+                                        <h2 className="text-3xl font-extrabold tracking-tight mt-1 text-white">Trusted Clients</h2>
+                                    </div>
+
+                                </div>
+
+                                <div className="relative w-full overflow-hidden py-4 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                                    <div className="animate-marquee flex space-x-6 items-center">
+                                        {[...aboutData.clients, ...aboutData.clients].map((client, index) => {
+                                            const logoUrl = resolveImageUrl(client.logo);
+                                            // A11Y: the list is duplicated to make the marquee loop seamlessly;
+                                            // hide the repeated half so screen readers don't announce it twice.
+                                            const isDuplicate = index >= aboutData.clients.length;
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    aria-hidden={isDuplicate ? 'true' : undefined}
+                                                    className="flex items-center justify-center px-8 py-5 rounded-2xl bg-zinc-950/90 border border-white/5 hover:border-emerald-500/40 transition-all duration-300 min-w-[210px] h-24 shrink-0 group shadow-lg"
+                                                >
+                                                    {logoUrl ? (
+                                                        <img
+                                                            src={logoUrl}
+                                                            alt={client.name || 'Client logo'}
+                                                            width={160}
+                                                            height={40}
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            className="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm font-mono tracking-wider text-zinc-300 group-hover:text-emerald-400 transition-colors">
+                                                            {client.name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
-                            <h3 className="font-mono text-sm uppercase tracking-wider text-white font-bold">Our Mission</h3>
-                        </div>
-                        <p className="text-zinc-300 text-sm sm:text-base leading-relaxed">
-                            {aboutData.mission}
-                        </p>
+                        )}
+
+                        {aboutData.techPartners && aboutData.techPartners.length > 0 && (
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                                    <div>
+                                        <span className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">Ecosystem</span>
+                                        <h2 className="text-3xl font-extrabold tracking-tight mt-1 text-white">Technology Partners</h2>
+                                    </div>
+
+                                </div>
+
+                                <div className="relative w-full overflow-hidden py-4 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                                    <div className="animate-marquee-reverse flex space-x-6 items-center">
+                                        {[...aboutData.techPartners, ...aboutData.techPartners].map((tech, index) => {
+                                            const logoUrl = resolveImageUrl(tech.logo);
+                                            const isDuplicate = index >= aboutData.techPartners.length;
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    aria-hidden={isDuplicate ? 'true' : undefined}
+                                                    className="flex items-center justify-center px-8 py-5 rounded-2xl bg-zinc-950/90 border border-white/5 hover:border-emerald-500/40 transition-all duration-300 min-w-[210px] h-24 shrink-0 group shadow-lg"
+                                                >
+                                                    {logoUrl ? (
+                                                        <img
+                                                            src={logoUrl}
+                                                            alt={tech.name || 'Tech partner logo'}
+                                                            width={160}
+                                                            height={40}
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            className="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm font-mono tracking-wider text-zinc-300 group-hover:text-emerald-400 transition-colors">
+                                                            {tech.name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
+                    <div id="contact" className="pt-20 border-t border-white/10 scroll-mt-20 space-y-12">
+                        <div className="text-center max-w-2xl mx-auto space-y-3">
+                            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                                Get in touch
+                            </h2>
+                            <p className="text-zinc-400 text-sm sm:text-base">
+                                Ready to optimize your infrastructure? Drop us a message or visit our office below.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950 p-5 hover:border-emerald-500/30 transition-all shadow-xl">
+                                <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 mr-4">
+                                    <Mail className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-0.5">Email Address</div>
+                                    <a href={`mailto:${aboutData.email}`} className="text-sm font-semibold text-white hover:text-emerald-300 truncate block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">
+                                        {aboutData.email}
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950 p-5 hover:border-emerald-500/30 transition-all shadow-xl">
+                                <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 mr-4">
+                                    <Phone className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-0.5">Phone Number</div>
+                                    <a href={`tel:${aboutData.phone}`} className="text-sm font-semibold text-white hover:text-emerald-300 truncate block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">
+                                        {aboutData.phone}
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950 p-5 hover:border-emerald-500/30 transition-all shadow-xl">
+                                <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 mr-4">
+                                    <MapPin className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-0.5">Our Office</div>
+                                    <p className="text-sm font-semibold text-white truncate">{addressLine1 || 'Ground Floor Malikayil Building'}</p>
+                                    <p className="text-xs text-zinc-400 truncate mt-0.5">{addressLine2 || 'Kanjikuzhi, Kottayam'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                            <div className="lg:col-span-6 flex flex-col rounded-2xl border border-white/10 bg-zinc-950 p-4 shadow-xl overflow-hidden min-h-[420px]">
+                                <div className="w-full h-full flex-1 rounded-xl overflow-hidden border border-white/10 relative">
+                                    <iframe
+                                        title="Ridhitech India Location Map"
+                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3929.69562737813!2d76.28866479999999!3d9.9592621!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b0873a594821935%3A0xbcb764a920edbc17!2sRIDHITECH%20INDIA%20PRIVATE%20LIMITED!5e0!3m2!1sen!2sin!4v1789975771710!5m2!1sen!2sin" width="100%" height="100%"
+                                        style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg)', minHeight: '390px' }}
+                                        allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                                </div>
+                            </div>
+
+                            {/* PERF: the reCAPTCHA provider (and the script it injects) now only
+                                mounts once this column is within 500px of the viewport, instead of
+                                on every About page load. Shortens the initial network dependency
+                                chain; the form itself is unchanged. */}
+                            <div ref={contactRef} className="lg:col-span-6 flex flex-col">
+                                {contactInView ? (
+                                    <GoogleReCaptchaProvider reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}>
+                                        <ContactForm />
+                                    </GoogleReCaptchaProvider>
+                                ) : (
+                                    <div className="flex-1 flex items-center justify-center rounded-2xl border border-white/10 bg-zinc-950 p-6 sm:p-8 shadow-xl min-h-[420px]">
+                                        <div aria-hidden="true" className="h-6 w-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                                        <span className="sr-only">Loading contact form…</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-
-                <div className="space-y-16 overflow-hidden">
-                    {aboutData.clients && aboutData.clients.length > 0 && (
-                        <div className="space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-                                <div>
-                                    <span className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">Collaborations</span>
-                                    <h3 className="text-3xl font-extrabold tracking-tight mt-1 text-white">Trusted Clients</h3>
-                                </div>
-
-                            </div>
-
-                            <div className="relative w-full overflow-hidden py-4 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-                                <div className="animate-marquee flex space-x-6 items-center">
-                                    {[...aboutData.clients, ...aboutData.clients].map((client, index) => {
-                                        const logoUrl = resolveImageUrl(client.logo);
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="flex items-center justify-center px-8 py-5 rounded-2xl bg-zinc-950/90 border border-white/5 hover:border-emerald-500/40 transition-all duration-300 min-w-[210px] h-24 shrink-0 group shadow-lg"
-                                            >
-                                                {logoUrl ? (
-                                                    <img
-                                                        src={logoUrl}
-                                                        alt={client.name || 'Client logo'}
-                                                        className="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
-                                                    />
-                                                ) : (
-                                                    <span className="text-sm font-mono tracking-wider text-zinc-300 group-hover:text-emerald-400 transition-colors">
-                                                        {client.name}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {aboutData.techPartners && aboutData.techPartners.length > 0 && (
-                        <div className="space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-                                <div>
-                                    <span className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">Ecosystem</span>
-                                    <h3 className="text-3xl font-extrabold tracking-tight mt-1 text-white">Technology Partners</h3>
-                                </div>
-
-                            </div>
-
-                            <div className="relative w-full overflow-hidden py-4 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-                                <div className="animate-marquee-reverse flex space-x-6 items-center">
-                                    {[...aboutData.techPartners, ...aboutData.techPartners].map((tech, index) => {
-                                        const logoUrl = resolveImageUrl(tech.logo);
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="flex items-center justify-center px-8 py-5 rounded-2xl bg-zinc-950/90 border border-white/5 hover:border-emerald-500/40 transition-all duration-300 min-w-[210px] h-24 shrink-0 group shadow-lg"
-                                            >
-                                                {logoUrl ? (
-                                                    <img
-                                                        src={logoUrl}
-                                                        alt={tech.name || 'Tech partner logo'}
-                                                        className="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
-                                                    />
-                                                ) : (
-                                                    <span className="text-sm font-mono tracking-wider text-zinc-300 group-hover:text-emerald-400 transition-colors">
-                                                        {tech.name}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div id="contact" className="pt-20 border-t border-white/10 scroll-mt-20 space-y-12">
-                    <div className="text-center max-w-2xl mx-auto space-y-3">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                            Get in touch
-                        </h2>
-                        <p className="text-zinc-400 text-sm sm:text-base">
-                            Ready to optimize your infrastructure? Drop us a message or visit our office below.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950 p-5 hover:border-emerald-500/30 transition-all shadow-xl">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 mr-4">
-                                <Mail className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-0.5">Email Address</div>
-                                <a href={`mailto:${aboutData.email}`} className="text-sm font-semibold text-white hover:text-emerald-300 truncate block">
-                                    {aboutData.email}
-                                </a>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950 p-5 hover:border-emerald-500/30 transition-all shadow-xl">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 mr-4">
-                                <Phone className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-0.5">Phone Number</div>
-                                <a href={`tel:${aboutData.phone}`} className="text-sm font-semibold text-white hover:text-emerald-300 truncate block">
-                                    {aboutData.phone}
-                                </a>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950 p-5 hover:border-emerald-500/30 transition-all shadow-xl">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 mr-4">
-                                <MapPin className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-0.5">Our Office</div>
-                                <p className="text-sm font-semibold text-white truncate">{addressLine1 || 'Ground Floor Malikayil Building'}</p>
-                                <p className="text-xs text-zinc-400 truncate mt-0.5">{addressLine2 || 'Kanjikuzhi, Kottayam'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                        <div className="lg:col-span-6 flex flex-col rounded-2xl border border-white/10 bg-zinc-950 p-4 shadow-xl overflow-hidden min-h-[420px]">
-                            <div className="w-full h-full flex-1 rounded-xl overflow-hidden border border-white/10 relative">
-                                <iframe
-                                    title="Ridhitech India Location Map"
-                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3929.69562737813!2d76.28866479999999!3d9.9592621!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b0873a594821935%3A0xbcb764a920edbc17!2sRIDHITECH%20INDIA%20PRIVATE%20LIMITED!5e0!3m2!1sen!2sin!4v1789975771710!5m2!1sen!2sin" width="100%" height="100%"
-                                    style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg)', minHeight: '390px' }}
-                                    allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
-                            </div>
-                        </div>
-
-                        <GoogleReCaptchaProvider reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}>
-                            <ContactForm />
-                        </GoogleReCaptchaProvider>
-                    </div>
-                </div>
-
-            </div>
-        </main>
+            </main>
+        </MotionConfig>
     );
 }
-

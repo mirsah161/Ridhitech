@@ -1,13 +1,18 @@
 @import "tailwindcss";
 
-@layer base {
-  * {
-    font-display: swap;
-  }
-}
+/* PERF: `font-display` only has an effect inside an @font-face rule — it
+   tells the browser how to behave between requesting a custom font and it
+   finishing loading. There's no @font-face here (you're not loading a
+   custom font), so applying it to `*` did nothing; it's removed rather
+   than left in as dead code that looks like a fix. If you ever add a
+   custom font, put `font-display: swap;` inside that font's own
+   @font-face block (or `&display=swap` on a Google Fonts URL) instead. */
 
-html {
-  scroll-behavior: smooth;
+/* A11Y: only smooth-scroll for people who haven't asked for reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {

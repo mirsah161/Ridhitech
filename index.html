@@ -13,6 +13,14 @@
   <link rel="preconnect" href="https://rithi-backend.onrender.com" crossorigin />
   <link rel="dns-prefetch" href="https://rithi-backend.onrender.com" />
 
+  <!-- PERF: you don't load a custom font yourself, but Google's reCAPTCHA
+       badge and the Maps embed both pull Roboto from fonts.gstatic.com,
+       which is what the "Font display" audit is catching. This warms that
+       connection early so whichever of the two needs it isn't starting
+       from a cold DNS/TLS handshake. It doesn't add a swap behavior —
+       that's Google's font-face declaration, not yours to change. -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Ridhitech India" />
   <meta property="og:title" content="Ridhitech India | High-Performance Web & Software Engineering" />
