@@ -54,7 +54,7 @@ export default function NotFound() {
                         className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 rounded-full bg-emerald-400 px-6 py-3 text-xs font-mono tracking-[0.2em] uppercase text-black font-bold hover:bg-emerald-300 transition-all duration-300 shadow-lg shadow-emerald-400/20 cursor-pointer"
                     >
                         <Home className="w-4 h-4" />
-                        <span>Back To Home</span>
+                        <span>Back to Home</span>
                     </Link>
 
                     <button
