@@ -14,7 +14,13 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('framer-motion')) return 'vendor-framer-motion';
+            // PERFORMANCE FIX: framer-motion 11+ splits its runtime into
+            // separate npm packages (motion-dom, motion-utils) that live
+            // in their own node_modules folders — the plain 'framer-motion'
+            // substring check below misses them, so they were silently
+            // falling into the generic 'vendor' bucket even though they
+            // execute on every page that uses useScroll/motion.div.
+            if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) return 'vendor-framer-motion';
 
             // PERFORMANCE FIX: react-router-dom is needed on every route
             // (App.jsx wraps <Routes> at the top level), so it must load
