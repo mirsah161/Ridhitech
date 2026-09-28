@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 
 const TOTAL_FRAMES = 182;
-const framePath = (index) => `/frames/frame-${String(index).padStart(4, '0')}.webp`;
+const framePath = (index, mobile) =>
+    `${mobile ? '/frames-mobile' : '/frames'}/frame-${String(index).padStart(4, '0')}.webp`;
 
 export default function Hero({ servicesData = [] }) {
     const containerRef = useRef(null);
@@ -100,7 +101,12 @@ export default function Hero({ servicesData = [] }) {
             }
             const img = new Image();
             img.decoding = 'async';
-            img.src = framePath(index);
+            // PERFORMANCE FIX: hint the browser to prioritize the very first
+            // frame so it paints as early as possible (helps LCP on mobile)
+            if (index === targetFrames[0]) {
+                img.fetchPriority = 'high';
+            }
+            img.src = framePath(index, isMobile);
             const done = () => {
                 loaded += 1;
                 if (!cancelled) {

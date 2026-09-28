@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import * as LucideIcons from 'lucide-react';
-import { ChevronDown } from 'lucide-react';
+import { Cpu, ShieldCheck, Zap, Terminal, ChevronDown } from 'lucide-react';
+
+// PERFORMANCE FIX: named imports only pull in these 4 icons (tree-shaken),
+// instead of `import * as LucideIcons` which bundled the entire icon
+// library just to look one up by string name at runtime.
+const DEFAULT_ICONS = [Cpu, ShieldCheck, Zap, Terminal];
 
 function WCUCard({ pillar, index }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const isLongDescription = pillar.Description && pillar.Description.length > 110;
 
-    const IconComponent = LucideIcons[pillar.IconName] || LucideIcons.Layers;
+    // Cycle through the fixed icon set by position — backend never sends
+    // an icon name, so there's nothing to look up dynamically.
+    const IconComponent = DEFAULT_ICONS[index % DEFAULT_ICONS.length];
 
     return (
         <motion.div
@@ -50,25 +56,21 @@ export default function WCU({ data }) {
             id: 1,
             Title: 'High-Throughput Systems',
             Description: 'Architecting distributed platforms engineered for continuous load and microsecond response times.',
-            IconName: 'Cpu',
         },
         {
             id: 2,
             Title: 'Zero-Trust Security',
             Description: 'Bespoke infrastructure hardened with active threat mitigation and strict compliance controls.',
-            IconName: 'ShieldCheck',
         },
         {
             id: 3,
             Title: 'Precision Execution',
             Description: 'Eliminating technical friction through continuous delivery pipelines and optimized codebases.',
-            IconName: 'Zap',
         },
         {
             id: 4,
             Title: 'Custom Dev Ecosystems',
             Description: 'Tailor-made software environments and internal tools designed to supercharge engineering velocity.',
-            IconName: 'Terminal',
         },
     ];
 

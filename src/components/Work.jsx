@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config/api';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
@@ -8,10 +8,35 @@ import sarkars from '../assets/sarkars.png'
 import zodiac from '../assets/zodiac.png'
 
 export default function Work({ data }) {
+    const sectionRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // PERFORMANCE FIX: Work is the last section on the page (below Hero,
+    // About, Services). Without this gate, the fetch below and the
+    // autoplay interval further down both start the instant the component
+    // mounts — running well before the user has scrolled anywhere near it,
+    // and competing with above-the-fold work during Lighthouse's mobile
+    // CPU-throttled load window. rootMargin gives it a generous head start
+    // so content is still ready long before it's actually visible.
+    const [shouldLoad, setShouldLoad] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setShouldLoad(true);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: '800px' }
+        );
+
+        if (sectionRef.current) observer.observe(sectionRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const fallbackProjects = [
         {
@@ -53,6 +78,8 @@ export default function Work({ data }) {
     ];
 
     useEffect(() => {
+        if (!shouldLoad) return;
+
         if (data && data.length > 0) {
             setProjects(data);
             setLoading(false);
@@ -93,15 +120,15 @@ export default function Work({ data }) {
                 setProjects(fallbackProjects);
                 setLoading(false);
             });
-    }, [data]);
+    }, [data, shouldLoad]);
 
     useEffect(() => {
-        if (!isAutoPlaying || projects.length === 0) return;
+        if (!shouldLoad || !isAutoPlaying || projects.length === 0) return;
         const interval = setInterval(() => {
             handleNext();
         }, 3500);
         return () => clearInterval(interval);
-    }, [activeIndex, isAutoPlaying, projects.length]);
+    }, [activeIndex, isAutoPlaying, projects.length, shouldLoad]);
 
     const handleNext = () => {
         if (projects.length === 0) return;
@@ -157,6 +184,7 @@ export default function Work({ data }) {
     return (
         <section
             id="work"
+            ref={sectionRef}
             className="relative min-h-screen w-full bg-black py-12 pt-20 scroll-mt-12 text-white overflow-hidden flex flex-col justify-between selection:bg-emerald-500 selection:text-black font-sans"
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}
@@ -166,7 +194,7 @@ export default function Work({ data }) {
 
             <div className="max-w-6xl mx-auto w-full px-6 sm:px-8 mb-4 z-20 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    
+
                     <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-snug bg-gradient-to-r from-white via-gray-100 to-emerald-200 bg-clip-text text-transparent font-sans">
                         Engineered for <span className="text-emerald-400">performance.</span>
                     </h2>

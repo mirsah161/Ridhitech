@@ -119,6 +119,8 @@ export default function Footer() {
                                     alt={trustBadge.name || "Trust badge"}
                                     width={133}
                                     height={89}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="h-20 w-auto object-contain"
                                 />
                             </div>

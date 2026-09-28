@@ -4,8 +4,11 @@ import { API_BASE_URL } from '../config/api';
 
 const TOTAL_FRAMES = 200;
 
-const currentFrame = (index) =>
-    `${import.meta.env.BASE_URL}lapFrames/frame-${index.toString().padStart(4, '0')}.webp`;
+// PERFORMANCE FIX: mobile reads a smaller-resolution frame set from
+// lapFrames-mobile/ instead of the full-size lapFrames/ set used on
+// desktop — same filenames, same count, lighter bytes per frame.
+const currentFrame = (index, mobile) =>
+    `${import.meta.env.BASE_URL}${mobile ? 'lapFrames-mobile' : 'lapFrames'}/frame-${index.toString().padStart(4, '0')}.webp`;
 
 export default function Services({ data }) {
     const containerRef = useRef(null);
@@ -137,7 +140,7 @@ export default function Services({ data }) {
             }
             const img = new Image();
             img.decoding = 'async';
-            img.src = currentFrame(index);
+            img.src = currentFrame(index, isMobile);
             const done = () => {
                 loaded += 1;
                 if (!cancelled) {

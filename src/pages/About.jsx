@@ -63,12 +63,24 @@ function useInView(rootMargin = '500px') {
 }
 
 function ContactForm() {
-
-    const { executeRecaptcha } = useGoogleReCaptcha(); 
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
     const [submitted, setSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+
+    // Character limit configuration
+    const MAX_NAME_LENGTH = 50;
+    const MAX_MESSAGE_LENGTH = 500;
+    const [message, setMessage] = useState('');
+
+    const handleReset = (e) => {
+        e.preventDefault();
+        setMessage('');
+        setErrorMsg('');
+        const form = e.target.closest('form');
+        if (form) form.reset();
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -90,6 +102,20 @@ function ContactForm() {
             return;
         }
 
+        // Name and Message Validation Checks
+        const firstNameValue = formElements.firstName.value.trim();
+        const lastNameValue = formElements.lastName.value.trim();
+
+        if (firstNameValue.length > MAX_NAME_LENGTH || lastNameValue.length > MAX_NAME_LENGTH) {
+            setErrorMsg(`Names cannot exceed ${MAX_NAME_LENGTH} characters.`);
+            return;
+        }
+
+        if (message.trim().length > MAX_MESSAGE_LENGTH) {
+            setErrorMsg(`Message cannot exceed ${MAX_MESSAGE_LENGTH} characters.`);
+            return;
+        }
+
         // Check if reCAPTCHA is ready
         if (!executeRecaptcha) {
             setErrorMsg('Security check is still loading. Please try again in a moment.');
@@ -103,11 +129,11 @@ function ContactForm() {
             const token = await executeRecaptcha('contact_submit');
 
             const formData = {
-                firstName: formElements.firstName.value,
-                lastName: formElements.lastName.value,
+                firstName: firstNameValue,
+                lastName: lastNameValue,
                 email: emailValue,
-                message: formElements.message.value,
-                token: token, // Send the security token to backend
+                message: message,
+                token: token,
             };
 
             const API_BASE_URL_LOCAL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
@@ -139,6 +165,7 @@ function ContactForm() {
                 recentLogs.push(now);
                 localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(recentLogs));
                 setSubmitted(true);
+                setMessage('');
                 e.target.reset();
             } else {
                 const errorData = await response.json();
@@ -161,9 +188,8 @@ function ContactForm() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="py-16 text-center space-y-3 relative" /* Added relative here */
+                        className="py-16 text-center space-y-3 relative"
                     >
-                        {/* Top Right Close Button */}
                         <button
                             onClick={() => setSubmitted(false)}
                             className="absolute top-[-20%] right-0 p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
@@ -195,7 +221,6 @@ function ContactForm() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                {/* A11Y: htmlFor/id programmatically associates each label with its input */}
                                 <label htmlFor="firstName" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
                                     Your Name
                                 </label>
@@ -204,8 +229,8 @@ function ContactForm() {
                                     type="text"
                                     name="firstName"
                                     required
+                                    maxLength={MAX_NAME_LENGTH}
                                     placeholder="Your name"
-                                    // A11Y: placeholder-zinc-600 was ~2.7:1 on black; zinc-400 clears 4.5:1
                                     className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors"
                                 />
                             </div>
@@ -218,6 +243,7 @@ function ContactForm() {
                                     type="text"
                                     name="lastName"
                                     required
+                                    maxLength={MAX_NAME_LENGTH}
                                     placeholder="Your last name"
                                     className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors"
                                 />
@@ -239,14 +265,22 @@ function ContactForm() {
                         </div>
 
                         <div>
-                            <label htmlFor="message" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1.5">
-                                Message
-                            </label>
+                            <div className="flex justify-between items-center mb-1.5">
+                                <label htmlFor="message" className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+                                    Message
+                                </label>
+                                <span className={`text-[10px] font-mono ${message.length > MAX_MESSAGE_LENGTH ? 'text-red-400' : 'text-zinc-500'}`}>
+                                    {MAX_MESSAGE_LENGTH - message.length} characters left
+                                </span>
+                            </div>
                             <textarea
                                 id="message"
                                 name="message"
                                 required
                                 rows={4}
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                maxLength={MAX_MESSAGE_LENGTH}
                                 placeholder="Write something...."
                                 className="w-full rounded-xl border border-white/10 bg-black px-3.5 py-3 text-sm text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none transition-colors resize-none"
                             />
@@ -260,18 +294,30 @@ function ContactForm() {
                             autoComplete="off"
                         />
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-mono font-semibold text-black hover:bg-emerald-400 transition-all flex items-center justify-center space-x-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer mt-2"
-                        >
-                            {isLoading ? (
-                                <div aria-hidden="true" className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <span>Submit</span>
-                            )}
-                        </button>
-                        {/* A11Y: text-zinc-500 was ~4.35:1 on black (fails 4.5:1 for small text); zinc-400 clears it */}
+                        {/* Action Buttons: Equal 50/50 Widths */}
+                        <div className="flex items-center gap-3 mt-2">
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                disabled={isLoading}
+                                className="flex-1 rounded-xl border border-white/10 bg-zinc-900 py-3.5 text-sm font-mono font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all flex items-center justify-center active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                Reset
+                            </button>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="flex-1 rounded-xl bg-emerald-500 py-3.5 text-sm font-mono font-semibold text-black hover:bg-emerald-400 transition-all flex items-center justify-center space-x-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer"
+                            >
+                                {isLoading ? (
+                                    <div aria-hidden="true" className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <span>Submit</span>
+                                )}
+                            </button>
+                        </div>
+
                         <p className="text-[11px] text-zinc-400 text-center mt-3">
                             This site is protected by reCAPTCHA and the Google{' '}
                             <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">Privacy Policy</a> and{' '}
@@ -281,8 +327,7 @@ function ContactForm() {
                 )}
             </AnimatePresence>
         </div>
-    )
-
+    );
 }
 
 export default function About() {

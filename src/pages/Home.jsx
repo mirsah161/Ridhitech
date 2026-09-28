@@ -21,13 +21,10 @@ export default function Home() {
             };
         },
         staleTime: 1000 * 60 * 5,
-        // keep last-known-good data on screen during refetches instead of
-        // ever falling back to a loading state after first paint
         placeholderData: (prev) => prev,
     });
 
-    // no isLoading gate — render with whatever we have (empty/fallback
-    // on first paint, real data the moment the fetch resolves)
+
     const homePage = data?.homePage || null;
     const about = data?.aboutSections || null;
     const services = data?.services || [];
