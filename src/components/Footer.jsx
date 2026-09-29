@@ -12,6 +12,19 @@ const fallbackServices = [
     { id: 4, Title: 'Cloud Based Solutions' },
 ];
 
+const getOptimizedUrl = (url, width, height) => {
+    if (!url) return '';
+    if (url.includes('res.cloudinary.com')) {
+        return url
+            .replace('/upload/', `/upload/w_${width},h_${height},c_limit,f_auto,q_auto/`)
+            .replace(/\.(png|jpe?g|gif)$/i, '');
+    }
+    return url.startsWith('http')
+        ? url
+        : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
+
 export default function Footer() {
 
     const [shouldFetch, setShouldFetch] = useState(false);
@@ -81,6 +94,11 @@ export default function Footer() {
         }
     };
 
+    const badgeSrc = trustBadge?.url?.includes('res.cloudinary.com')
+        ? trustBadge.url
+        : trustBadge?.formats?.thumbnail?.url || trustBadge?.url; // Strapi's pre-resized ~245px copy
+
+
     return (
         <footer className="relative bg-black text-white border-t border-white/10 overflow-hidden font-sans">
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -z-10 h-32 w-2/3 bg-emerald-500/5 blur-[100px] pointer-events-none" />
@@ -111,12 +129,8 @@ export default function Footer() {
                         {trustBadge?.url && (
                             <div className="pt-2">
                                 <img
-                                    src={
-                                        trustBadge.url.startsWith('http')
-                                            ? trustBadge.url
-                                            : `${API_BASE_URL}${trustBadge.url.startsWith('/') ? '' : '/'}${trustBadge.url}`
-                                    }
-                                    alt={trustBadge.name || "Trust badge"}
+                                    src={getOptimizedUrl(badgeSrc, 266, 178)}
+                                    alt={trustBadge.alternativeText || "Trust badge"}
                                     width={133}
                                     height={89}
                                     loading="lazy"

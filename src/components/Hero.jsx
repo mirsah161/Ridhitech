@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { m, useScroll, useTransform } from 'framer-motion';
 
 const TOTAL_FRAMES = 182;
 const framePath = (index, mobile) =>
@@ -253,7 +253,7 @@ export default function Hero({ servicesData = [] }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/50 pointer-events-none" aria-hidden="true" />
 
                 <div className="relative z-20 flex h-[calc(100vh-88px)] items-center px-4 sm:px-8 max-w-7xl mx-auto w-full">
-                    <motion.div
+                    <m.div
                         style={{ opacity: opacityAct1, y: yAct1, pointerEvents: pointerAct1, visibility: visibilityAct1 }}
                         className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6"
                     >
@@ -262,17 +262,17 @@ export default function Hero({ servicesData = [] }) {
                             <span className="bg-gradient-to-r from-white via-gray-200 to-emerald-400 bg-clip-text text-transparent">{lastTwo}</span>
                         </h1>
                         <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg font-sans">{activeServices[0].description}</p>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                         style={{ opacity: opacityAct2, y: yAct2, pointerEvents: pointerAct2, visibility: visibilityAct2 }}
                         className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6"
                     >
                         <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white leading-tight font-sans">{activeServices[1].title}</h2>
                         <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg font-sans">{activeServices[1].description}</p>
-                    </motion.div>
+                    </m.div>
 
-                    <motion.div
+                    <m.div
                         style={{ opacity: opacityAct3, y: yAct3, pointerEvents: pointerAct3, visibility: visibilityAct3 }}
                         className="absolute max-w-[90vw] sm:max-w-xl space-y-4 sm:space-y-6"
                     >
@@ -286,13 +286,13 @@ export default function Hero({ servicesData = [] }) {
                                 Explore Services
                             </button>
                         </div>
-                    </motion.div>
+                    </m.div>
                 </div>
 
                 <div className="absolute bottom-6 inset-x-4 sm:inset-x-8 z-20 flex items-center justify-between max-w-7xl mx-auto text-xs font-mono text-zinc-300" aria-hidden="true">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                         <span>SCROLL TO EXPLORE</span>
-                        <div className="h-1 w-16 sm:w-24 bg-white/10 rounded-full overflow-hidden"><motion.div className="h-full bg-emerald-400" style={{ width: progressPercent }} /></div>
+                        <div className="h-1 w-16 sm:w-24 bg-white/10 rounded-full overflow-hidden"><m.div className="h-full bg-emerald-400" style={{ width: progressPercent }} /></div>
                     </div>
                     <span className="hidden sm:block">RIDHITECH INDIA PVT LTD</span>
                 </div>

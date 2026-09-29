@@ -20,7 +20,7 @@ export default defineConfig({
             // substring check below misses them, so they were silently
             // falling into the generic 'vendor' bucket even though they
             // execute on every page that uses useScroll/motion.div.
-            if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) return 'vendor-framer-motion';
+            if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) return;
 
             // PERFORMANCE FIX: react-router-dom is needed on every route
             // (App.jsx wraps <Routes> at the top level), so it must load

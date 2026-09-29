@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config/api';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import epicon from '../assets/epicon.png'
 import goal from '../assets/goal.png'
@@ -233,7 +233,7 @@ export default function Work({ data }) {
                         const tagsList = project.tags || [];
 
                         return (
-                            <motion.div
+                            <m.div
                                 key={project.id || index}
                                 initial={false}
                                 animate={{
@@ -287,7 +287,7 @@ export default function Work({ data }) {
                                     </div>
 
                                     {isActive && (
-                                        <motion.a
+                                        <m.a
                                             initial={{ opacity: 0, scale: 0.9 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             href={project.LiveUrl || '#'}
@@ -296,10 +296,10 @@ export default function Work({ data }) {
                                         >
                                             <span>View project</span>
                                             <ExternalLink className="h-3 w-3" />
-                                        </motion.a>
+                                        </m.a>
                                     )}
                                 </div>
-                            </motion.div>
+                            </m.div>
                         );
                     })}
                 </div>

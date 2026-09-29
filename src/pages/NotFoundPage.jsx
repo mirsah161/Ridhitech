@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
@@ -20,7 +20,7 @@ export default function NotFound() {
 
             <div className="max-w-xl w-full text-center relative z-10 space-y-6">
 
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
@@ -31,18 +31,18 @@ export default function NotFound() {
                     <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-200">
                         Page Not Found
                     </h2>
-                </motion.div>
+                </m.div>
 
-                <motion.p
+                <m.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
                     className="text-sm sm:text-base text-zinc-300 font-mono tracking-wide max-w-md mx-auto"
                 >
                     The page you are looking for doesn't exist or has been moved. Let's get you back on track.
-                </motion.p>
+                </m.p>
 
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
@@ -64,7 +64,7 @@ export default function NotFound() {
                         <ArrowLeft className="w-4 h-4" />
                         <span>Previous Page</span>
                     </button>
-                </motion.div>
+                </m.div>
             </div>
         </div>
     );

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config/api';
 // A11Y: MotionConfig lets these animations respect the OS "reduce motion" setting.
-import { motion, MotionConfig } from 'framer-motion';
+import { m, MotionConfig } from 'framer-motion';
 import { ArrowRight, ChevronDown, Layers } from 'lucide-react';
 import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
@@ -41,16 +41,16 @@ function ServiceCard({ service, index }) {
     const isLongDescription = service.description.length > 110;
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.05 }}
-            className="group rounded-2xl border border-white/10 bg-zinc-900/40 p-6 sm:p-8 backdrop-blur-sm hover:border-emerald-500/35 transition-all duration-300 flex flex-col justify-between h-full shadow-xl"
+            className="group rounded-2xl border border-white/10 bg-zinc-900/40 p-6 sm:p-8 md:backdrop-blur-sm hover:border-emerald-500/35 transition-colors duration-300 flex flex-col justify-between h-full shadow-xl"
         >
             <div>
                 <div className="flex items-center justify-between mb-6">
                     {/* A11Y: icon is decorative — the title text below already names the service */}
-                    <div aria-hidden="true" className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 flex items-center justify-center shadow-inner text-emerald-400 backdrop-blur-md">
+                    <div aria-hidden="true" className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 flex items-center justify-center shadow-inner text-emerald-400 md:backdrop-blur-md">
                         {service.iconUrl ? (
                             <div
                                 className="w-6 h-6 bg-emerald-400 group-hover:bg-emerald-300 transition-colors"
@@ -70,7 +70,7 @@ function ServiceCard({ service, index }) {
                         )}
                     </div>
                     {/* A11Y: index badge is decorative, not reading content */}
-                    <span aria-hidden="true" className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-mono text-emerald-400 backdrop-blur-md">
+                    <span aria-hidden="true" className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-mono text-emerald-400 md:backdrop-blur-md">
                         {index + 1 < 10 ? `0${index + 1}` : index + 1}
                     </span>
                 </div>
@@ -113,7 +113,7 @@ function ServiceCard({ service, index }) {
                     <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
                 </a>
             </div>
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -210,7 +210,7 @@ export default function ServicesPage() {
                     ))}
                 </div>
 
-                <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-zinc-900/40 to-black p-8 sm:p-12 text-center relative overflow-hidden backdrop-blur-sm shadow-xl">
+                <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-zinc-900/40 to-black p-8 sm:p-12 text-center relative overflow-hidden md:backdrop-blur-sm shadow-xl">
                     <div className="relative z-10 max-w-2xl mx-auto">
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 font-sans">
                             Ready to build something <span className="text-emerald-400">extraordinary?</span>
@@ -220,7 +220,7 @@ export default function ServicesPage() {
                         </p>
                         <Link
                             to="/about"
-                            className="inline-flex items-center space-x-2 rounded-xl bg-emerald-500 px-6 py-3 text-xs font-mono font-semibold text-black hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                            className="inline-flex items-center space-x-2 rounded-xl bg-emerald-500 px-6 py-3 text-xs font-mono font-semibold text-black hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                         >
                             <span>GET IN TOUCH</span>
                             <ArrowRight aria-hidden="true" className="h-4 w-4" />

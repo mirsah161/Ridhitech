@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -186,7 +186,7 @@ export default function Navbar() {
             <div
                 className={`transition-all duration-300 ease-in-out flex items-center ${isShrunk
                     ? 'w-auto max-w-[92vw] px-4 py-2 rounded-full border border-white/10 bg-black/75 backdrop-blur-xl shadow-2xl pointer-events-auto'
-                    : 'w-full max-w-7xl px-4 sm:px-10 justify-between'
+                    : 'w-full max-w-7xl px-4 sm:px-10 justify-between rounded-3xl border border-white/5 bg-black/20 backdrop-blur-md'
                     }`}
                 style={{
                     backgroundColor: isShrunk ? undefined : `rgba(0, 0, 0, ${bgOpacity})`,
@@ -196,7 +196,7 @@ export default function Navbar() {
             >
                 <AnimatePresence>
                     {!isShrunk && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20, transition: { duration: 0.15 } }}
@@ -205,13 +205,18 @@ export default function Navbar() {
                             <Link
                                 to="/"
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center space-x-2 cursor-pointer font-sans"
+                                className="flex items-center cursor-pointer py-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                             >
-                                <span>
-                                    RIDHI<span className="text-emerald-400">TECH</span>
-                                </span>
+
+                                <img
+                                    src="/images/logo.webp"
+                                    alt="Ridhitech Logo"
+                                    className="h-12 sm:h-14 w-auto object-contain"
+                                    width="85"
+                                    height="98"
+                                />
                             </Link>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
 
@@ -242,11 +247,11 @@ export default function Navbar() {
                                     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
                                     handleNavClick(e, item);
                                 }}
-                                className={`relative font-mono tracking-[0.15em] uppercase transition-colors duration-200 cursor-pointer ${isShrunk ? 'px-4 py-1.5 text-[11px]' : 'px-5 py-2 text-xs'
+                                className={`relative font-mono tracking-[0.15em] uppercase transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isShrunk ? 'px-4 py-1.5 text-[11px]' : 'px-5 py-2 text-xs'
                                     } ${isActive ? 'text-black font-bold' : 'text-zinc-400 hover:text-white'}`}
                             >
                                 {isActive && (
-                                    <motion.div
+                                    <m.div
                                         layoutId="activeTab"
                                         className="absolute inset-0 bg-emerald-400 rounded-full -z-10 shadow-lg shadow-emerald-400/20"
                                         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
@@ -260,7 +265,7 @@ export default function Navbar() {
 
                 <AnimatePresence>
                     {!isShrunk && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20, transition: { duration: 0.15 } }}
@@ -273,26 +278,31 @@ export default function Navbar() {
                                     if (e.metaKey || e.ctrlKey) return;
                                     handleNavClick(e, { href: '/about', isAnchor: false });
                                 }}
-                                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-2.5 text-xs font-mono tracking-[0.15em] text-emerald-400 hover:bg-emerald-400 hover:text-black hover:border-emerald-400 transition-all duration-300 cursor-pointer shadow-lg shadow-emerald-500/5"
+                                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-2.5 text-xs font-mono tracking-[0.15em] text-emerald-400 hover:bg-emerald-400 hover:text-black hover:border-emerald-400 transition-all duration-300 cursor-pointer shadow-lg shadow-emerald-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                             >
                                 GET IN TOUCH
                             </Link>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
 
                 <button
                     type="button"
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-zinc-400 hover:text-white ml-auto cursor-pointer transition-colors"
+                    className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-zinc-400 hover:text-white ml-auto cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     aria-label="Toggle Menu"
+                    // A11Y: tells assistive tech whether the panel this button
+                    // controls is currently open, and which element that is.
+                    aria-expanded={mobileMenuOpen}
+                    aria-controls="mobile-menu"
                 >
-                    {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    {mobileMenuOpen ? <X aria-hidden="true" className="h-5 w-5" /> : <Menu aria-hidden="true" className="h-5 w-5" />}
                 </button>
             </div>
 
             {mobileMenuOpen && (
-                <motion.div
+                <m.div
+                    id="mobile-menu"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -320,7 +330,7 @@ export default function Navbar() {
                                         if (e.metaKey || e.ctrlKey) return;
                                         handleNavClick(e, item);
                                     }}
-                                    className={`px-4 py-3 rounded-xl text-xs font-mono tracking-[0.2em] uppercase transition-all ${isActive
+                                    className={`px-4 py-3 rounded-xl text-xs font-mono tracking-[0.2em] uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${isActive
                                         ? 'bg-emerald-400 text-black font-bold shadow-lg shadow-emerald-400/20'
                                         : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                                         }`}
@@ -336,13 +346,13 @@ export default function Navbar() {
                                     if (e.metaKey || e.ctrlKey) return;
                                     handleNavClick(e, { href: '/about', isAnchor: false });
                                 }}
-                                className="block w-full text-center rounded-xl bg-emerald-400/10 border border-emerald-500/30 px-4 py-3 text-xs font-mono tracking-[0.2em] uppercase text-emerald-400 hover:bg-emerald-400 hover:text-black transition-all"
+                                className="block w-full text-center rounded-xl bg-emerald-400/10 border border-emerald-500/30 px-4 py-3 text-xs font-mono tracking-[0.2em] uppercase text-emerald-400 hover:bg-emerald-400 hover:text-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                             >
                                 Get In Touch
                             </Link>
                         </div>
                     </div>
-                </motion.div>
+                </m.div>
             )}
         </header>
     );

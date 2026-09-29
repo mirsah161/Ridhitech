@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import SEO from '../components/SEO';
 import Hero from '../components/Hero';
-import About from '../components/WCU';
-import Services from '../components/Services';
-import Work from '../components/Work';
 import { API_BASE_URL } from '../config/api';
+
+
+const About = lazy(() => import('../components/WCU'));
+const Services = lazy(() => import('../components/Services'));
+const Work = lazy(() => import('../components/Work'));
 
 export default function Home() {
     const { data } = useQuery({
@@ -24,7 +26,8 @@ export default function Home() {
         placeholderData: (prev) => prev,
     });
 
-
+    // no isLoading gate — render with whatever we have (empty/fallback
+    // on first paint, real data the moment the fetch resolves)
     const homePage = data?.homePage || null;
     const about = data?.aboutSections || null;
     const services = data?.services || [];
@@ -41,9 +44,11 @@ export default function Home() {
             />
             <main>
                 <Hero servicesData={services} />
-                <About data={about} />
-                <Services data={services} />
-                <Work data={work} />
+                <Suspense fallback={null}>
+                    <About data={about} />
+                    <Services data={services} />
+                    <Work data={work} />
+                </Suspense>
             </main>
         </div>
     );

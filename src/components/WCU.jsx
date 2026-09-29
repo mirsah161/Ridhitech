@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Cpu, ShieldCheck, Zap, Terminal, ChevronDown } from 'lucide-react';
 
 // PERFORMANCE FIX: named imports only pull in these 4 icons (tree-shaken),
@@ -16,7 +16,7 @@ function WCUCard({ pillar, index }) {
     const IconComponent = DEFAULT_ICONS[index % DEFAULT_ICONS.length];
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -46,7 +46,7 @@ function WCUCard({ pillar, index }) {
                     )}
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     );
 }
 
